@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Trunks — Asterisk WebUI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Trunks</h1>
+  <a href="{{ url_for('trunks.ui_new') }}" class="btn btn-primary">+ New Trunk</a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Host</th>
+      <th>Username</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for t in trunks %}
+    <tr>
+      <td><strong>{{ t.name }}</strong></td>
+      <td><code>{{ t.type }}</code></td>
+      <td>{{ t.host }}</td>
+      <td>{{ t.username or "—" }}</td>
+      <td>
+        <span class="badge {% if t.enabled %}badge-ok{% else %}badge-off{% endif %}">
+          {{ "Enabled" if t.enabled else "Disabled" }}
+        </span>
+      </td>
+      <td class="actions">
+        <form method="post" action="{{ url_for('trunks.ui_toggle', trunk_name=t.name) }}"
+              style="display:inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-sm">
+            {{ "Disable" if t.enabled else "Enable" }}
+          </button>
+        </form>
+        <a href="{{ url_for('trunks.ui_edit', trunk_name=t.name) }}" class="btn btn-sm">Edit</a>
+        <form method="post" action="{{ url_for('trunks.ui_delete', trunk_name=t.name) }}"
+              style="display:inline" onsubmit="return confirm('Delete trunk {{ t.name }}?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="6" class="text-muted" style="text-align:center">No trunks configured.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

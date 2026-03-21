@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Music on Hold — Asterisk WebUI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Music on Hold</h1>
+  <a href="{{ url_for('moh.ui_new_class') }}" class="btn btn-primary">+ New Class</a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+{% for item in classes %}
+<div class="card" style="margin-bottom:1.5rem">
+  <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+    <span>{{ item.cls.name }}</span>
+    <span style="font-weight:normal;font-size:.8rem;text-transform:none">{{ item.cls.directory }}</span>
+  </div>
+  <div class="card-body">
+    <table class="table" style="margin-top:0">
+      <thead>
+        <tr>
+          <th>Filename</th>
+          <th>Duration</th>
+          <th>Uploaded</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in item.tracks %}
+        <tr>
+          <td><code>{{ t.filename }}</code></td>
+          <td>{{ "%.1f s"|format(t.duration_sec) if t.duration_sec else "—" }}</td>
+          <td>{{ t.uploaded_at }}</td>
+          <td class="actions">
+            <a href="{{ url_for('moh.ui_play_track', class_name=item.cls.name, track_id=t.id) }}"
+               class="btn btn-sm" target="_blank">Play</a>
+            <form method="post"
+                  action="{{ url_for('moh.ui_delete_track', class_name=item.cls.name, track_id=t.id) }}"
+                  style="display:inline" onsubmit="return confirm('Delete track {{ t.filename }}?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4" class="text-muted" style="text-align:center">No tracks in this class.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div style="display:flex;gap:.75rem;align-items:end;flex-wrap:wrap;margin-top:.5rem">
+      <form method="post" action="{{ url_for('moh.ui_upload_track', class_name=item.cls.name) }}"
+            enctype="multipart/form-data" style="display:flex;gap:.5rem;align-items:end">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group" style="margin:0">
+          <label style="font-size:.8rem">Upload track (.mp3, .wav, .ogg → .wav16)</label>
+          <input type="file" name="file" accept=".mp3,.wav,.ogg" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Upload</button>
+      </form>
+      <div style="margin-left:auto;display:flex;gap:.5rem">
+        <a href="{{ url_for('moh.ui_edit_class', class_name=item.cls.name) }}" class="btn btn-sm">Edit</a>
+        <form method="post" action="{{ url_for('moh.ui_delete_class', class_name=item.cls.name) }}"
+              style="display:inline" onsubmit="return confirm('Delete class {{ item.cls.name }} and all its tracks?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-sm btn-danger">Delete Class</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% else %}
+<p class="text-muted" style="text-align:center;margin:2rem 0">No MoH classes configured.</p>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Spam Prefixes — Asterisk WebUI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Spam Prefix Blacklist</h1>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<!-- Add single prefix -->
+<div class="form-card" style="margin-bottom:2rem">
+  <h2>Add Prefix</h2>
+  <form method="post" action="{{ url_for('spam.ui_add') }}" class="inline-add-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-row">
+      <div class="form-group">
+        <label for="prefix">4-digit Prefix</label>
+        <input type="text" id="prefix" name="prefix" placeholder="0161"
+               maxlength="4" pattern="[0-9]{4}" required style="width:100px">
+      </div>
+      <div class="form-group" style="align-self:flex-end">
+        <button type="submit" class="btn btn-primary">Add</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Bulk import -->
+<div class="form-card" style="margin-bottom:2rem">
+  <h2>Bulk Import</h2>
+  <form method="post" action="{{ url_for('spam.ui_bulk_import') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group">
+      <label for="bulk_prefixes">Paste prefixes (one per line, or comma/space separated)</label>
+      <textarea id="bulk_prefixes" name="prefixes" rows="4"
+                placeholder="0161&#10;0162&#10;0270&#10;0271"
+                style="width:100%;font-family:monospace"></textarea>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Import All</button>
+    </div>
+  </form>
+</div>
+
+<!-- Current prefixes -->
+<div class="form-card">
+  <h2>Active Prefixes <small style="color:#6c757d;font-weight:normal">({{ prefixes|length }} total)</small></h2>
+  <table class="table" style="margin-top:1rem">
+    <thead>
+      <tr>
+        <th>Prefix</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in prefixes %}
+      <tr>
+        <td><code>{{ p.key }}</code></td>
+        <td class="actions">
+          <form method="post" action="{{ url_for('spam.ui_delete', prefix=p.key) }}"
+                style="display:inline" onsubmit="return confirm('Remove spam prefix {{ p.key }}?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="2" class="text-muted" style="text-align:center">No spam prefixes configured.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p style="margin-top:1rem;color:#6c757d;font-size:0.9em">
+    Spam prefixes are checked against the first 4 digits of incoming caller ID.
+    Matching calls are rejected immediately (cause 21).
+  </p>
+</div>
+{% endblock %}

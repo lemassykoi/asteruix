@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Announcements — Asterisk WebUI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Announcements</h1>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<div class="card" style="margin-bottom:1.5rem">
+  <div class="card-header">Upload New Announcement</div>
+  <div class="card-body">
+    <form method="post" action="{{ url_for('announcements.ui_upload') }}"
+          enctype="multipart/form-data" style="display:flex;gap:.75rem;align-items:end;flex-wrap:wrap">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group" style="margin:0">
+        <label style="font-size:.8rem">Key Name</label>
+        <input type="text" name="key_name" class="form-control" required
+               pattern="[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+               placeholder="e.g. custom-closed" style="width:14rem">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label style="font-size:.8rem">Language</label>
+        <input type="text" name="language" class="form-control" value="fr"
+               style="width:4rem">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label style="font-size:.8rem">Audio file (.mp3, .wav, .ogg → .wav16)</label>
+        <input type="file" name="file" accept=".mp3,.wav,.ogg" class="form-control" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Upload</button>
+    </form>
+  </div>
+</div>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Key Name</th>
+      <th>Filename</th>
+      <th>Language</th>
+      <th>Duration</th>
+      <th>Uploaded</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for a in announcements %}
+    <tr>
+      <td><code>{{ a.key_name }}</code></td>
+      <td><code>{{ a.filename }}</code></td>
+      <td>{{ a.language }}</td>
+      <td>{{ "%.1f s"|format(a.duration_sec) if a.duration_sec else "—" }}</td>
+      <td>{{ a.uploaded_at }}</td>
+      <td>
+        {% if a.active %}
+          <span class="badge badge-ok">Active</span>
+        {% else %}
+          <span class="badge badge-off">Inactive</span>
+        {% endif %}
+        {% if not a.file_exists %}
+          <span class="badge badge-off" title="File missing on disk">⚠ Missing</span>
+        {% endif %}
+      </td>
+      <td class="actions">
+        {% if a.file_exists %}
+        <a href="{{ url_for('announcements.ui_play', ann_id=a.id) }}"
+           class="btn btn-sm" target="_blank">Play</a>
+        {% endif %}
+        {% if not a.active %}
+        <form method="post"
+              action="{{ url_for('announcements.ui_activate', ann_id=a.id) }}"
+              style="display:inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-sm btn-primary">Set Active</button>
+        </form>
+        {% endif %}
+        <form method="post"
+              action="{{ url_for('announcements.ui_delete', ann_id=a.id) }}"
+              style="display:inline" onsubmit="return confirm('Delete announcement {{ a.key_name }}?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="7" class="text-muted" style="text-align:center">No announcements configured.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="card" style="margin-top:1rem">
+  <div class="card-body" style="font-size:.85rem">
+    <strong>Note:</strong> The <em>active</em> announcement is used by <code>Playback()</code> in the closed-hours
+    dialplan flow. Only one announcement can be active at a time. Files are stored in
+    <code>{{ announcements_dir }}</code> as <code>.wav16</code> (16 kHz mono 16-bit).
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Extensions — Asterisk WebUI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Extensions</h1>
+  <a href="{{ url_for('extensions.ui_new') }}" class="btn btn-primary">+ New Extension</a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Extension</th>
+      <th>Caller ID</th>
+      <th>Codecs</th>
+      <th>VM PIN</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for e in extensions %}
+    <tr>
+      <td><strong>{{ e.ext }}</strong></td>
+      <td>{{ e.callerid_name }}</td>
+      <td><code>{{ e.codecs }}</code></td>
+      <td><code>{{ e.vm_pin }}</code></td>
+      <td>
+        <span class="badge {% if e.enabled %}badge-ok{% else %}badge-off{% endif %}">
+          {{ "Enabled" if e.enabled else "Disabled" }}
+        </span>
+      </td>
+      <td class="actions">
+        <a href="{{ url_for('extensions.ui_edit', ext_id=e.ext) }}" class="btn btn-sm">Edit</a>
+        <form method="post" action="{{ url_for('extensions.ui_delete', ext_id=e.ext) }}"
+              style="display:inline" onsubmit="return confirm('Delete extension {{ e.ext }}?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="6" class="text-muted" style="text-align:center">No extensions configured.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Holidays — Asterisk WebUI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Holidays (Time Conditions)</h1>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<!-- Fixed Holidays -->
+<div class="form-card" style="margin-bottom:2rem">
+  <h2>Fixed Holidays <small style="color:#6c757d;font-weight:normal">(MMDD — every year)</small></h2>
+
+  <form method="post" action="{{ url_for('holidays.ui_add_fixed') }}" class="inline-add-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-row">
+      <div class="form-group">
+        <label for="fixed_month">Month</label>
+        <select id="fixed_month" name="month" required>
+          <option value="01">01 — Jan</option>
+          <option value="02">02 — Feb</option>
+          <option value="03">03 — Mar</option>
+          <option value="04">04 — Apr</option>
+          <option value="05">05 — May</option>
+          <option value="06">06 — Jun</option>
+          <option value="07">07 — Jul</option>
+          <option value="08">08 — Aug</option>
+          <option value="09">09 — Sep</option>
+          <option value="10">10 — Oct</option>
+          <option value="11">11 — Nov</option>
+          <option value="12">12 — Dec</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="fixed_day">Day</label>
+        <input type="text" id="fixed_day" name="day" placeholder="01" maxlength="2"
+               pattern="(0[1-9]|[12]\d|3[01])" required style="width:60px">
+      </div>
+      <div class="form-group" style="flex:2">
+        <label for="fixed_name">Name</label>
+        <input type="text" id="fixed_name" name="name" placeholder="e.g. New Year" maxlength="64">
+      </div>
+      <div class="form-group" style="align-self:flex-end">
+        <button type="submit" class="btn btn-primary">Add</button>
+      </div>
+    </div>
+  </form>
+
+  <table class="table" style="margin-top:1rem">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Key (MMDD)</th>
+        <th>Name</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for h in fixed %}
+      <tr>
+        <td>{{ h.display }}</td>
+        <td><code>{{ h.key }}</code></td>
+        <td>{{ h.value }}</td>
+        <td class="actions">
+          <form method="post" action="{{ url_for('holidays.ui_delete_fixed', mmdd=h.key) }}"
+                style="display:inline" onsubmit="return confirm('Remove fixed holiday {{ h.display }} ({{ h.key }})?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="4" class="text-muted" style="text-align:center">No fixed holidays configured.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Variable Holidays -->
+<div class="form-card">
+  <h2>Variable Holidays <small style="color:#6c757d;font-weight:normal">(YYYYMMDD — specific year)</small></h2>
+
+  <form method="post" action="{{ url_for('holidays.ui_add_variable') }}" class="inline-add-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label for="var_date">Date</label>
+        <input type="date" id="var_date" name="date" required>
+      </div>
+      <div class="form-group" style="flex:2">
+        <label for="var_name">Name</label>
+        <input type="text" id="var_name" name="name" placeholder="e.g. Easter Monday" maxlength="64">
+      </div>
+      <div class="form-group" style="align-self:flex-end">
+        <button type="submit" class="btn btn-primary">Add</button>
+      </div>
+    </div>
+  </form>
+
+  <table class="table" style="margin-top:1rem">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Key (YYYYMMDD)</th>
+        <th>Name</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for h in variable %}
+      <tr>
+        <td>{{ h.display }}</td>
+        <td><code>{{ h.key }}</code></td>
+        <td>{{ h.value }}</td>
+        <td class="actions">
+          <form method="post" action="{{ url_for('holidays.ui_delete_variable', yyyymmdd=h.key) }}"
+                style="display:inline" onsubmit="return confirm('Remove variable holiday {{ h.display }} ({{ h.key }})?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="4" class="text-muted" style="text-align:center">No variable holidays configured.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p style="margin-top:1rem;color:#6c757d;font-size:0.9em">
+    <strong>Reminder:</strong> Variable holidays (Easter-based dates) need to be updated each year.
+  </p>
+</div>
+{% endblock %}

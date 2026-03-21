@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Time Groups — Asterisk WebUI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Time Groups</h1>
+  <a href="{{ url_for('timegroups.ui_new') }}" class="btn btn-primary">+ New Time Group</a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Timezone</th>
+      <th>Schedule</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for tg in groups %}
+    <tr>
+      <td><strong>{{ tg.name }}</strong></td>
+      <td><code>{{ tg.timezone }}</code></td>
+      <td>{{ tg.summary }}</td>
+      <td class="actions">
+        <a href="{{ url_for('timegroups.ui_edit', tg_id=tg.id) }}" class="btn btn-sm">Edit</a>
+        <form method="post" action="{{ url_for('timegroups.ui_delete', tg_id=tg.id) }}"
+              style="display:inline" onsubmit="return confirm('Delete time group \'{{ tg.name }}\'?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="4" class="text-muted" style="text-align:center">No time groups configured.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Dialplan Visualization — Asterisk WebUI{% endblock %}
+{% block container_class %}container-wide{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    securityLevel: 'loose',
+    theme: 'base',
+    themeVariables: {
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+      fontSize: '16px',
+    },
+    flowchart: {
+      htmlLabels: true,
+      curve: 'basis',
+      nodeSpacing: 60,
+      rankSpacing: 70,
+      padding: 20,
+      useMaxWidth: false,
+    },
+  });
+</script>
+<style>
+  .mermaid {
+    min-width: 700px;
+  }
+  .mermaid svg {
+    min-height: 600px;
+  }
+  .mermaid .node { cursor: pointer; }
+  .mermaid .node:hover rect,
+  .mermaid .node:hover polygon {
+    filter: brightness(0.93);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Dialplan Visualization</h1>
+  <a href="{{ url_for('inbound.ui_list') }}" class="btn btn-sm">← Inbound Routes</a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+{# ── Mermaid Flow Diagram ── #}
+<div class="card" style="margin-bottom:1.5rem">
+  <div class="card-header">Call Flow <span style="font-weight:400;font-size:.8em;text-transform:none">&mdash; click a node to manage it</span></div>
+  <div class="card-body" style="display:flex;justify-content:center;padding:2rem;overflow-x:auto">
+    <pre class="mermaid">
+{{ mermaid_code }}
+    </pre>
+  </div>
+</div>
+
+{# ── Generated Dialplan Text ── #}
+<div class="card">
+  <div class="card-header">Generated Dialplan</div>
+  <div class="card-body">
+    {% if dialplan_text.strip() %}
+    <pre style="white-space:pre-wrap;font-size:.85rem;line-height:1.5;margin:0"><code>{{ dialplan_text }}</code></pre>
+    {% else %}
+    <p class="text-muted">No inbound routes configured. The generated dialplan will be empty.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

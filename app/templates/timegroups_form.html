@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}{{ "New Time Group" if is_new else "Edit " + tg.name }} — Asterisk WebUI{% endblock %}
+{% block content %}
+<h1>{{ "New Time Group" if is_new else "Edit Time Group: " + tg.name }}</h1>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<form method="post" class="form-card" id="tg-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  {% if is_new %}
+  <div class="form-group">
+    <label for="name">Group Name</label>
+    <input type="text" id="name" name="name" class="form-control"
+           value="{{ tg.name }}" required
+           placeholder="e.g. Business Hours">
+  </div>
+  {% endif %}
+
+  <div class="form-group">
+    <label for="timezone">Timezone</label>
+    <input type="text" id="timezone" name="timezone" class="form-control"
+           value="{{ tg.timezone }}" required
+           placeholder="Europe/Paris">
+  </div>
+
+  <h3>Time Rules</h3>
+  <p class="text-muted" style="font-size:.9em">Define one or more time ranges. Calls within any matching range are routed to the "open" flow.</p>
+
+  <div id="rules-container">
+    {% for rule in tg.rules %}
+    <div class="rule-row" data-index="{{ loop.index0 }}">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Start</label>
+          <input type="time" name="rule_{{ loop.index0 }}_start" class="form-control"
+                 value="{{ rule.start }}" required>
+        </div>
+        <div class="form-group">
+          <label>End</label>
+          <input type="time" name="rule_{{ loop.index0 }}_end" class="form-control"
+                 value="{{ rule.end }}" required>
+        </div>
+        <div class="form-group" style="display:flex;align-items:end;padding-bottom:.5rem">
+          {% if loop.index0 > 0 %}
+          <button type="button" class="btn btn-sm btn-danger" onclick="removeRule(this)">✕</button>
+          {% endif %}
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Days</label>
+        <div class="days-checkboxes">
+          {% set days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] %}
+          {% set day_labels = {"mon": "Mon", "tue": "Tue", "wed": "Wed", "thu": "Thu", "fri": "Fri", "sat": "Sat", "sun": "Sun"} %}
+          {% for d in days %}
+          <label class="day-label">
+            <input type="checkbox" name="rule_{{ loop.parent.loop.index0 }}_days"
+                   value="{{ d }}" {{ "checked" if d in rule.days }}>
+            {{ day_labels[d] }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <hr>
+    </div>
+    {% endfor %}
+  </div>
+
+  <button type="button" class="btn btn-sm" id="add-rule-btn" onclick="addRule()">+ Add Rule</button>
+
+  <div class="form-actions" style="margin-top:1.5rem">
+    <button type="submit" class="btn btn-primary">
+      {{ "Create Time Group" if is_new else "Save Changes" }}
+    </button>
+    <a href="{{ url_for('timegroups.ui_list') }}" class="btn">Cancel</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var ruleIndex = {{ tg.rules | length }};
+
+function addRule() {
+  var container = document.getElementById('rules-container');
+  var days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+  var dayLabels = {mon:'Mon', tue:'Tue', wed:'Wed', thu:'Thu', fri:'Fri', sat:'Sat', sun:'Sun'};
+
+  var html = '<div class="rule-row" data-index="' + ruleIndex + '">';
+  html += '<div class="form-row">';
+  html += '<div class="form-group"><label>Start</label>';
+  html += '<input type="time" name="rule_' + ruleIndex + '_start" class="form-control" required></div>';
+  html += '<div class="form-group"><label>End</label>';
+  html += '<input type="time" name="rule_' + ruleIndex + '_end" class="form-control" required></div>';
+  html += '<div class="form-group" style="display:flex;align-items:end;padding-bottom:.5rem">';
+  html += '<button type="button" class="btn btn-sm btn-danger" onclick="removeRule(this)">✕</button></div>';
+  html += '</div>';
+  html += '<div class="form-group"><label>Days</label><div class="days-checkboxes">';
+  for (var i = 0; i < days.length; i++) {
+    html += '<label class="day-label"><input type="checkbox" name="rule_' + ruleIndex + '_days" value="' + days[i] + '"> ' + dayLabels[days[i]] + '</label>';
+  }
+  html += '</div></div><hr></div>';
+
+  container.insertAdjacentHTML('beforeend', html);
+  ruleIndex++;
+}
+
+function removeRule(btn) {
+  var row = btn.closest('.rule-row');
+  row.remove();
+  // Re-index remaining rules
+  reindexRules();
+}
+
+function reindexRules() {
+  var rows = document.querySelectorAll('.rule-row');
+  ruleIndex = 0;
+  rows.forEach(function(row) {
+    row.setAttribute('data-index', ruleIndex);
+    var inputs = row.querySelectorAll('input[type="time"]');
+    if (inputs.length >= 1) inputs[0].name = 'rule_' + ruleIndex + '_start';
+    if (inputs.length >= 2) inputs[1].name = 'rule_' + ruleIndex + '_end';
+    var checks = row.querySelectorAll('input[type="checkbox"]');
+    checks.forEach(function(cb) {
+      cb.name = 'rule_' + ruleIndex + '_days';
+    });
+    ruleIndex++;
+  });
+}
+</script>
+{% endblock %}

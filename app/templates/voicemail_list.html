@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Voicemail — Asterisk WebUI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Voicemail</h1>
+  <a href="{{ url_for('voicemail.ui_blast') }}" class="btn btn-primary">Blast Config</a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Mailbox</th>
+      <th>Name</th>
+      <th>INBOX</th>
+      <th>Old</th>
+      <th>Other</th>
+      <th>Total</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for mb in mailboxes %}
+    <tr>
+      <td><code>{{ mb.mailbox }}</code></td>
+      <td>{{ mb.name }}</td>
+      <td>
+        {% if mb.counts.get('INBOX', 0) > 0 %}
+          <span class="badge badge-ok">{{ mb.counts['INBOX'] }}</span>
+        {% else %}
+          0
+        {% endif %}
+      </td>
+      <td>{{ mb.counts.get('Old', 0) }}</td>
+      <td>{{ mb.total - mb.counts.get('INBOX', 0) - mb.counts.get('Old', 0) }}</td>
+      <td>{{ mb.total }}</td>
+      <td class="actions">
+        <a href="{{ url_for('voicemail.ui_mailbox', mailbox=mb.mailbox) }}"
+           class="btn btn-sm btn-primary">Open</a>
+      </td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="7" class="text-muted" style="text-align:center">No voicemail boxes configured.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

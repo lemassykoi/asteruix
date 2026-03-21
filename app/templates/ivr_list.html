@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}IVR Menus — Asterisk WebUI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>IVR Menus</h1>
+  <div>
+    <a href="{{ url_for('ivr.ui_preview') }}" class="btn btn-sm">Preview Dialplan</a>
+    <a href="{{ url_for('ivr.ui_new') }}" class="btn btn-primary">+ New IVR</a>
+  </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+{% for m in menus %}
+<div class="card" style="margin-bottom:1.5rem">
+  <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+    <span>{{ m.name }}</span>
+    <span style="font-size:.8rem;font-weight:normal;opacity:.8">Context: <code>ivr-{{ m.name }}</code></span>
+  </div>
+  <div class="card-body">
+    <table class="table" style="margin-bottom:.5rem">
+      <tr>
+        <th style="width:150px">Greeting</th>
+        <td><code>{{ m.greeting or "—" }}</code></td>
+      </tr>
+      <tr>
+        <th>Timeout</th>
+        <td>{{ m.timeout }}s</td>
+      </tr>
+      <tr>
+        <th>Invalid Retries</th>
+        <td>{{ m.invalid_retries }}</td>
+      </tr>
+      <tr>
+        <th>DTMF Options</th>
+        <td>
+          {% for opt in m.options %}
+            <span class="badge badge-ok" style="margin-right:.3rem">
+              {{ opt.digit }} → {{ opt.action }}{% if opt.target %} ({{ opt.target }}){% endif %}
+            </span>
+          {% else %}
+            <span class="text-muted">No options</span>
+          {% endfor %}
+        </td>
+      </tr>
+    </table>
+
+    <div class="form-actions">
+      <a href="{{ url_for('ivr.ui_edit', ivr_id=m.id) }}" class="btn btn-sm btn-primary">Edit</a>
+      <form method="post" action="{{ url_for('ivr.ui_delete', ivr_id=m.id) }}"
+            style="display:inline" onsubmit="return confirm('Delete IVR menu \'{{ m.name }}\'?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="card">
+  <div class="card-body" style="text-align:center">
+    <p class="text-muted">No IVR menus configured.</p>
+    <p class="text-muted" style="font-size:.85rem">Create an IVR to build interactive voice menus with DTMF digit routing.</p>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

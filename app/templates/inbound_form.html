@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}{{ "New Route" if is_new else "Edit " + route.name }} — Asterisk WebUI{% endblock %}
+{% block content %}
+<h1>{{ "New Inbound Route" if is_new else "Edit Route: " + route.name }}</h1>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<form method="post" class="form-card">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  {% if is_new %}
+  <div class="form-group">
+    <label for="name">Route Name</label>
+    <input type="text" id="name" name="name" class="form-control"
+           value="{{ route.name }}" required
+           placeholder="e.g. Main Trunk">
+  </div>
+  {% endif %}
+
+  <h2 style="margin-top:.5rem">Spam Filter</h2>
+  <div class="form-group">
+    <label for="spam_family">AstDB Spam Prefix Family</label>
+    <input type="text" id="spam_family" name="spam_family" class="form-control"
+           value="{{ route.spam_family or 'spam-prefix' }}"
+           placeholder="spam-prefix">
+    <small class="text-muted">First 4 digits of caller ID checked against this AstDB family. Matches are rejected (cause 21).</small>
+  </div>
+
+  <h2>Holiday Check</h2>
+  <div class="form-row">
+    <div class="form-group">
+      <label for="fixed_holiday_family">Fixed Holidays Family</label>
+      <input type="text" id="fixed_holiday_family" name="fixed_holiday_family" class="form-control"
+             value="{{ route.fixed_holiday_family or 'holidays-fixed' }}"
+             placeholder="holidays-fixed">
+    </div>
+    <div class="form-group">
+      <label for="variable_holiday_family">Variable Holidays Family</label>
+      <input type="text" id="variable_holiday_family" name="variable_holiday_family" class="form-control"
+             value="{{ route.variable_holiday_family or 'holidays-variable' }}"
+             placeholder="holidays-variable">
+    </div>
+  </div>
+  <small class="text-muted">Holidays route calls directly to the closed context (announcement + voicemail).</small>
+
+  <h2>Time Group</h2>
+  <div class="form-group">
+    <label for="time_group_id">Business Hours Time Group</label>
+    <select id="time_group_id" name="time_group_id" class="form-control" required>
+      <option value="">— Select time group —</option>
+      {% for tg in time_groups %}
+      <option value="{{ tg.id }}" {{ "selected" if route.time_group_id == tg.id }}>{{ tg.name }}</option>
+      {% endfor %}
+    </select>
+    <small class="text-muted">Determines open/closed routing based on day and time.</small>
+  </div>
+
+  <h2>Open Target</h2>
+  <div class="form-group">
+    <label for="open_target">Route to Extension</label>
+    <select id="open_target" name="open_target" class="form-control" required>
+      <option value="">— Select extension —</option>
+      {% for ext in extensions %}
+      <option value="{{ ext.ext }}" {{ "selected" if route.open_target == ext.ext }}>{{ ext.ext }} ({{ ext.callerid_name }})</option>
+      {% endfor %}
+    </select>
+    <small class="text-muted">Calls during open hours are routed to this extension.</small>
+  </div>
+
+  <h2>Closed Target</h2>
+  <div class="form-group">
+    <label for="closed_announcement">Announcement</label>
+    <select id="closed_announcement" name="closed_announcement" class="form-control" required>
+      <option value="">— Select announcement —</option>
+      {% for ann in announcements %}
+      <option value="{{ ann.key_name }}" {{ "selected" if route.closed_announcement == ann.key_name }}>
+        {{ ann.key_name }}{{ " ★" if ann.active else "" }}
+      </option>
+      {% endfor %}
+    </select>
+    <small class="text-muted">Played to callers during closed hours/holidays before voicemail.</small>
+  </div>
+
+  <div class="form-group">
+    <label for="blast_profile">Voicemail Blast Profile</label>
+    <select id="blast_profile" name="blast_profile" class="form-control">
+      <option value="">— Default (all extensions) —</option>
+      {% for bc in blast_configs %}
+      <option value="{{ bc.id }}" {{ "selected" if route.blast_profile == bc.id }}>
+        #{{ bc.id }}: {{ bc.mailbox_list }} (flags: {{ bc.voicemail_flags }})
+      </option>
+      {% endfor %}
+    </select>
+    <small class="text-muted">Which mailboxes receive voicemail after the closed announcement.</small>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">
+      {{ "Create Route" if is_new else "Save Changes" }}
+    </button>
+    <a href="{{ url_for('inbound.ui_list') }}" class="btn">Cancel</a>
+  </div>
+</form>
+{% endblock %}

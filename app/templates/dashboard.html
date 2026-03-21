@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Asterisk WebUI{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<div class="card-grid">
+
+  {# --- Asterisk Version --- #}
+  <div class="card">
+    <div class="card-header">Asterisk</div>
+    <div class="card-body">
+      {% if version %}
+      <div class="stat-value">{{ version.version }}</div>
+      <div class="stat-label">Built {{ version.build_date }}</div>
+      {% else %}
+      <div class="stat-value text-muted">—</div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# --- Uptime --- #}
+  <div class="card">
+    <div class="card-header">Uptime</div>
+    <div class="card-body">
+      {% if uptime %}
+      <div class="stat-value">{{ uptime.system_uptime }}</div>
+      <div class="stat-label">Last reload: {{ uptime.last_reload }}</div>
+      {% else %}
+      <div class="stat-value text-muted">—</div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# --- Registrations --- #}
+  <div class="card">
+    <div class="card-header">Endpoints</div>
+    <div class="card-body">
+      <div class="stat-value">{{ registered_count }} / {{ total_count }}</div>
+      <div class="stat-label">registered</div>
+    </div>
+  </div>
+
+  {# --- Active Calls --- #}
+  <div class="card">
+    <div class="card-header">Active Calls</div>
+    <div class="card-body">
+      <div class="stat-value">{{ call_count }}</div>
+      <div class="stat-label">channels</div>
+    </div>
+  </div>
+
+  {# --- Fail2ban --- #}
+  <div class="card">
+    <div class="card-header">Fail2ban</div>
+    <div class="card-body">
+      <div class="stat-value {% if fail2ban.currently_banned > 0 %}text-danger{% endif %}">
+        {{ fail2ban.currently_banned }} banned
+      </div>
+      <div class="stat-label">{{ fail2ban.currently_failed }} currently failed</div>
+    </div>
+  </div>
+
+</div>
+
+{# --- Endpoint Details Table --- #}
+<h2>Endpoints</h2>
+<table class="table">
+  <thead>
+    <tr>
+      <th>Extension</th>
+      <th>State</th>
+      <th>Contact</th>
+      <th>RTT</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for ep in endpoints %}
+    <tr>
+      <td>{{ ep.name }}</td>
+      <td>
+        <span class="badge {% if ep.contacts %}badge-ok{% else %}badge-off{% endif %}">
+          {{ ep.state }}
+        </span>
+      </td>
+      <td>
+        {% for c in ep.contacts %}
+          {{ c.uri }}{% if not loop.last %}<br>{% endif %}
+        {% else %}
+          <span class="text-muted">—</span>
+        {% endfor %}
+      </td>
+      <td>
+        {% for c in ep.contacts %}
+          {% if c.rtt_ms is not none %}{{ "%.1f"|format(c.rtt_ms) }} ms{% endif %}
+          {% if not loop.last %}<br>{% endif %}
+        {% else %}
+          <span class="text-muted">—</span>
+        {% endfor %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{# --- Active Channels Table (only shown when calls exist) --- #}
+{% if channels %}
+<h2>Active Channels</h2>
+<table class="table">
+  <thead>
+    <tr>
+      <th>Channel</th>
+      <th>Caller ID</th>
+      <th>Extension</th>
+      <th>State</th>
+      <th>Duration</th>
+      <th>Bridged To</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for ch in channels %}
+    <tr>
+      <td>{{ ch.channel }}</td>
+      <td>{{ ch.caller_id }}</td>
+      <td>{{ ch.extension }}</td>
+      <td>{{ ch.state }}</td>
+      <td>{{ ch.duration }}s</td>
+      <td>{{ ch.bridged_to }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if fail2ban.banned_ips %}
+<h2>Banned IPs</h2>
+<ul class="banned-list">
+  {% for ip in fail2ban.banned_ips %}
+  <li>{{ ip }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% endblock %}

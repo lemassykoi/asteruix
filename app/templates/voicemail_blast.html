@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Blast Config — Asterisk WebUI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Voicemail Blast Configuration</h1>
+  <a href="{{ url_for('voicemail.ui_list') }}" class="btn">← Voicemail</a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<div class="form-card">
+  <form method="post" action="{{ url_for('voicemail.ui_blast') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="form-group">
+      <label>Recipient Mailboxes</label>
+      <input type="text" name="mailbox_list" class="form-control"
+             value="{{ blast.mailbox_list }}"
+             placeholder="e.g. 4900&4901&4902&4903&4904">
+      <small class="text-muted">Separate with <code>&</code> — these mailboxes receive closed-hours voicemail.</small>
+    </div>
+
+    <div class="form-group">
+      <label>Voicemail Flags</label>
+      <input type="text" name="voicemail_flags" class="form-control"
+             value="{{ blast.voicemail_flags }}"
+             placeholder="su" style="width:8rem">
+      <small class="text-muted">
+        Flags: <code>s</code> = skip instructions, <code>u</code> = mark urgent,
+        <code>b</code> = busy greeting, <code>j</code> = allow # to skip.
+      </small>
+    </div>
+
+    <div class="card" style="margin-bottom:1.5rem">
+      <div class="card-header">Available Mailboxes</div>
+      <div class="card-body" style="font-size:.9rem">
+        {% for box in boxes %}
+          <code>{{ box.mailbox }}</code> — {{ box.name }}{% if not loop.last %}<br>{% endif %}
+        {% else %}
+          <span class="text-muted">No mailboxes configured.</span>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Save</button>
+      <a href="{{ url_for('voicemail.ui_list') }}" class="btn">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<div class="card" style="margin-top:1rem">
+  <div class="card-body" style="font-size:.85rem">
+    <strong>Note:</strong> The blast configuration defines which mailboxes receive voicemail
+    during closed hours via <code>VoiceMail(mailbox1&amp;mailbox2@default,flags)</code>.
+    Current dialplan uses: <code>VoiceMail(4900&amp;4901&amp;4902&amp;4903&amp;4904@default,su)</code>.
+  </div>
+</div>
+{% endblock %}

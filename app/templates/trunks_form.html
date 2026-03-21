@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}{{ "New Trunk" if is_new else "Edit " + trunk.name }} — Asterisk WebUI{% endblock %}
+{% block content %}
+<h1>{{ "New Trunk" if is_new else "Edit Trunk: " + trunk.name }}</h1>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<form method="post" class="form-card">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  {% if is_new %}
+  <div class="form-group">
+    <label for="name">Trunk Name</label>
+    <input type="text" id="name" name="name" class="form-control"
+           value="{{ trunk.name }}" required pattern="[a-zA-Z][a-zA-Z0-9_-]{0,31}"
+           placeholder="e.g. w3tel or goip">
+  </div>
+  {% endif %}
+
+  <div class="form-row">
+    <div class="form-group">
+      <label for="type">Trunk Type</label>
+      <select id="type" name="type" class="form-control" onchange="toggleRegistrationFields()">
+        <option value="registration" {{ "selected" if trunk.type == "registration" }}>Registration (SIP provider)</option>
+        <option value="identify" {{ "selected" if trunk.type == "identify" }}>Identify only (local gateway)</option>
+      </select>
+    </div>
+    <div class="form-group" style="display:flex;align-items:end;padding-bottom:.5rem">
+      <label>
+        <input type="checkbox" name="enabled" {{ "checked" if trunk.enabled }}>
+        Enabled
+      </label>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="host">Host</label>
+    <input type="text" id="host" name="host" class="form-control"
+           value="{{ trunk.host }}" required
+           placeholder="e.g. sip.w3tel.fr or 10.1.1.100">
+  </div>
+
+  <div id="registration-fields">
+    <div class="form-row">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" class="form-control"
+               value="{{ trunk.username }}" placeholder="SIP username">
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" class="form-control"
+               placeholder="{{ '(unchanged)' if not is_new else 'SIP password' }}">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="from_domain">From Domain</label>
+        <input type="text" id="from_domain" name="from_domain" class="form-control"
+               value="{{ trunk.from_domain }}" placeholder="e.g. sip.w3tel.fr">
+      </div>
+      <div class="form-group">
+        <label for="contact_uri">Contact URI</label>
+        <input type="text" id="contact_uri" name="contact_uri" class="form-control"
+               value="{{ trunk.contact_uri }}" placeholder="sip:host (auto if empty)">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="registration_server_uri">Registration Server URI</label>
+        <input type="text" id="registration_server_uri" name="registration_server_uri" class="form-control"
+               value="{{ trunk.registration_server_uri }}" placeholder="sip:host (auto if empty)">
+      </div>
+      <div class="form-group">
+        <label for="registration_client_uri">Registration Client URI</label>
+        <input type="text" id="registration_client_uri" name="registration_client_uri" class="form-control"
+               value="{{ trunk.registration_client_uri }}" placeholder="sip:user@host (auto if empty)">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="identify_match">Identify Match (IP / hostname)</label>
+    <input type="text" id="identify_match" name="identify_match" class="form-control"
+           value="{{ trunk.identify_match }}" required
+           placeholder="e.g. sip.w3tel.fr or 10.1.1.100">
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">
+      {{ "Create Trunk" if is_new else "Save Changes" }}
+    </button>
+    <a href="{{ url_for('trunks.ui_list') }}" class="btn">Cancel</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleRegistrationFields() {
+  var type = document.getElementById('type').value;
+  var regFields = document.getElementById('registration-fields');
+  regFields.style.display = (type === 'registration') ? '' : 'none';
+}
+toggleRegistrationFields();
+</script>
+{% endblock %}

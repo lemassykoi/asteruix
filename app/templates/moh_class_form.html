@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ "New MoH Class" if is_new else "Edit " + cls.name }} — Asterisk WebUI{% endblock %}
+{% block content %}
+<h1>{{ "New MoH Class" if is_new else "Edit MoH Class: " + cls.name }}</h1>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<form method="post" class="form-card">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  {% if is_new %}
+  <div class="form-group">
+    <label for="name">Class Name</label>
+    <input type="text" id="name" name="name" class="form-control"
+           value="{{ cls.name }}" required pattern="[a-zA-Z][a-zA-Z0-9_-]{0,31}"
+           placeholder="e.g. lobby">
+  </div>
+  {% endif %}
+
+  <div class="form-group">
+    <label for="directory">Directory</label>
+    <input type="text" id="directory" name="directory" class="form-control"
+           value="{{ cls.directory }}" placeholder="/var/lib/asterisk/moh-NAME (auto if empty)">
+    <small class="text-muted">Leave empty for auto: /var/lib/asterisk/moh-&lt;name&gt;</small>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">
+      {{ "Create Class" if is_new else "Save Changes" }}
+    </button>
+    <a href="{{ url_for('moh.ui_list') }}" class="btn">Cancel</a>
+  </div>
+</form>
+{% endblock %}

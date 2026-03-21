@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Mailbox {{ mailbox }} — Asterisk WebUI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Mailbox {{ mailbox }} — {{ box.name }}</h1>
+  <a href="{{ url_for('voicemail.ui_list') }}" class="btn">← All Mailboxes</a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<div style="display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap">
+  {% for f in folders %}
+    {% set count = counts.get(f, 0) %}
+    {% if count > 0 or f == 'INBOX' or f == folder %}
+    <a href="{{ url_for('voicemail.ui_mailbox', mailbox=mailbox, folder=f) }}"
+       class="btn btn-sm {% if f == folder %}btn-primary{% endif %}"
+       style="{% if f != folder %}background:#e9ecef;color:#212529{% endif %}">
+      {{ f }} {% if count > 0 %}({{ count }}){% endif %}
+    </a>
+    {% endif %}
+  {% endfor %}
+</div>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>From</th>
+      <th>Date</th>
+      <th>Duration</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for m in messages %}
+    <tr>
+      <td><code>{{ m.msg_id }}</code></td>
+      <td>{{ m.callerid }}</td>
+      <td>{{ m.origdate }}</td>
+      <td>{{ "%d s"|format(m.duration) if m.duration is not none else "—" }}</td>
+      <td class="actions">
+        {% if m.audio_file %}
+        <a href="{{ url_for('voicemail.ui_play_message', mailbox=mailbox, msg_id=m.msg_id, folder=folder) }}"
+           class="btn btn-sm" target="_blank">Play</a>
+        {% endif %}
+        <form method="post"
+              action="{{ url_for('voicemail.ui_delete_message', mailbox=mailbox, msg_id=m.msg_id) }}"
+              style="display:inline"
+              onsubmit="return confirm('Delete message {{ m.msg_id }} from {{ m.callerid }}?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="folder" value="{{ folder }}">
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="5" class="text-muted" style="text-align:center">No messages in {{ folder }}.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

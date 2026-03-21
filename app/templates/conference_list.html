@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Conference Rooms — Asterisk WebUI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Conference Rooms</h1>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Extension</th>
+      <th>Bridge Profile</th>
+      <th>User Profile</th>
+      <th>Menu Profile</th>
+      <th>Max Members</th>
+      <th>MoH Class</th>
+      <th>Announce Join/Leave</th>
+      <th>MoH When Empty</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in rooms %}
+    <tr>
+      <td><strong>{{ r.extension }}</strong></td>
+      <td><code>{{ r.bridge_profile }}</code></td>
+      <td><code>{{ r.user_profile }}</code></td>
+      <td><code>{{ r.menu_profile }}</code></td>
+      <td>{{ r.max_members }}</td>
+      <td>{{ r.moh_class }}</td>
+      <td>
+        <span class="badge {% if r.announce_join_leave %}badge-ok{% else %}badge-off{% endif %}">
+          {{ "Yes" if r.announce_join_leave else "No" }}
+        </span>
+      </td>
+      <td>
+        <span class="badge {% if r.music_on_hold_when_empty %}badge-ok{% else %}badge-off{% endif %}">
+          {{ "Yes" if r.music_on_hold_when_empty else "No" }}
+        </span>
+      </td>
+      <td class="actions">
+        <a href="{{ url_for('conference.ui_edit', extension=r.extension) }}" class="btn btn-sm">Edit</a>
+      </td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="9" class="text-muted" style="text-align:center">No conference rooms configured.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<p class="text-muted" style="margin-top:1rem">
+  Conference rooms use ConfBridge profiles. The menu profile (<code>default_menu</code>) is defined in
+  <code>confbridge.conf</code>. Bridge and user profiles are managed by the WebUI.
+</p>
+{% endblock %}

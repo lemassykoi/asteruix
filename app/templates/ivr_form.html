@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}{{ "New IVR" if is_new else "Edit " + ivr.name }} — Asterisk WebUI{% endblock %}
+{% block content %}
+<h1>{{ "New IVR Menu" if is_new else "Edit IVR: " + ivr.name }}</h1>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<form method="post" class="form-card" id="ivr-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  {% if is_new %}
+  <div class="form-group">
+    <label for="name">IVR Name</label>
+    <input type="text" id="name" name="name" class="form-control"
+           value="{{ ivr.name }}" required
+           placeholder="e.g. main-menu">
+    <small class="text-muted">Letters, digits, hyphens, underscores. Used in context name: <code>ivr-&lt;name&gt;</code></small>
+  </div>
+  {% endif %}
+
+  <div class="form-group">
+    <label for="greeting">Greeting Announcement</label>
+    <select id="greeting" name="greeting" class="form-control" required>
+      <option value="">— Select announcement —</option>
+      {% for ann in announcements %}
+      <option value="{{ ann.key_name }}" {{ "selected" if ivr.greeting == ann.key_name }}>
+        {{ ann.key_name }}{{ " ★" if ann.active else "" }}
+      </option>
+      {% endfor %}
+    </select>
+    <small class="text-muted">Audio played via Background() while accepting DTMF input.</small>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label for="timeout">Timeout (seconds)</label>
+      <input type="number" id="timeout" name="timeout" class="form-control"
+             value="{{ ivr.timeout }}" required min="1" max="60">
+      <small class="text-muted">How long to wait for DTMF input after greeting.</small>
+    </div>
+    <div class="form-group">
+      <label for="invalid_retries">Invalid Retries</label>
+      <input type="number" id="invalid_retries" name="invalid_retries" class="form-control"
+             value="{{ ivr.invalid_retries }}" required min="1" max="10">
+      <small class="text-muted">Max invalid/timeout attempts before hangup.</small>
+    </div>
+  </div>
+
+  <h3>DTMF Options</h3>
+  <p class="text-muted" style="font-size:.9em">Map digits to actions. Each digit can route to an extension, context, or hang up.</p>
+
+  <div id="options-container">
+    {% for opt in ivr.options %}
+    <div class="option-row" data-index="{{ loop.index0 }}">
+      <div class="form-row">
+        <div class="form-group" style="flex:0 0 80px">
+          <label>Digit</label>
+          <select name="opt_{{ loop.index0 }}_digit" class="form-control" required>
+            <option value="">—</option>
+            {% for d in ["0","1","2","3","4","5","6","7","8","9","*","#"] %}
+            <option value="{{ d }}" {{ "selected" if opt.digit == d }}>{{ d }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group" style="flex:0 0 180px">
+          <label>Action</label>
+          <select name="opt_{{ loop.index0 }}_action" class="form-control" required
+                  onchange="toggleTarget(this)">
+            <option value="">— Select —</option>
+            <option value="goto_extension" {{ "selected" if opt.action == "goto_extension" }}>Go to Extension</option>
+            <option value="goto_context" {{ "selected" if opt.action == "goto_context" }}>Go to Context</option>
+            <option value="hangup" {{ "selected" if opt.action == "hangup" }}>Hang Up</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1">
+          <label>Target</label>
+          <input type="text" name="opt_{{ loop.index0 }}_target" class="form-control"
+                 value="{{ opt.target }}"
+                 placeholder="Extension or context name"
+                 {{ "disabled" if opt.action == "hangup" }}>
+        </div>
+        <div class="form-group" style="display:flex;align-items:end;padding-bottom:.5rem;flex:0 0 40px">
+          {% if loop.index0 > 0 %}
+          <button type="button" class="btn btn-sm btn-danger" onclick="removeOption(this)">✕</button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <button type="button" class="btn btn-sm" id="add-option-btn" onclick="addOption()">+ Add Option</button>
+
+  <div class="form-actions" style="margin-top:1.5rem">
+    <button type="submit" class="btn btn-primary">
+      {{ "Create IVR" if is_new else "Save Changes" }}
+    </button>
+    <a href="{{ url_for('ivr.ui_list') }}" class="btn">Cancel</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var optionIndex = {{ ivr.options | length }};
+
+function addOption() {
+  var container = document.getElementById('options-container');
+  var digits = ['0','1','2','3','4','5','6','7','8','9','*','#'];
+
+  var html = '<div class="option-row" data-index="' + optionIndex + '">';
+  html += '<div class="form-row">';
+
+  // Digit select
+  html += '<div class="form-group" style="flex:0 0 80px"><label>Digit</label>';
+  html += '<select name="opt_' + optionIndex + '_digit" class="form-control" required>';
+  html += '<option value="">—</option>';
+  for (var i = 0; i < digits.length; i++) {
+    html += '<option value="' + digits[i] + '">' + digits[i] + '</option>';
+  }
+  html += '</select></div>';
+
+  // Action select
+  html += '<div class="form-group" style="flex:0 0 180px"><label>Action</label>';
+  html += '<select name="opt_' + optionIndex + '_action" class="form-control" required onchange="toggleTarget(this)">';
+  html += '<option value="">— Select —</option>';
+  html += '<option value="goto_extension">Go to Extension</option>';
+  html += '<option value="goto_context">Go to Context</option>';
+  html += '<option value="hangup">Hang Up</option>';
+  html += '</select></div>';
+
+  // Target input
+  html += '<div class="form-group" style="flex:1"><label>Target</label>';
+  html += '<input type="text" name="opt_' + optionIndex + '_target" class="form-control" placeholder="Extension or context name"></div>';
+
+  // Remove button
+  html += '<div class="form-group" style="display:flex;align-items:end;padding-bottom:.5rem;flex:0 0 40px">';
+  html += '<button type="button" class="btn btn-sm btn-danger" onclick="removeOption(this)">✕</button></div>';
+
+  html += '</div></div>';
+
+  container.insertAdjacentHTML('beforeend', html);
+  optionIndex++;
+}
+
+function removeOption(btn) {
+  var row = btn.closest('.option-row');
+  row.remove();
+  reindexOptions();
+}
+
+function reindexOptions() {
+  var rows = document.querySelectorAll('.option-row');
+  optionIndex = 0;
+  rows.forEach(function(row) {
+    row.setAttribute('data-index', optionIndex);
+    var selects = row.querySelectorAll('select');
+    if (selects.length >= 1) selects[0].name = 'opt_' + optionIndex + '_digit';
+    if (selects.length >= 2) selects[1].name = 'opt_' + optionIndex + '_action';
+    var inputs = row.querySelectorAll('input[type="text"]');
+    if (inputs.length >= 1) inputs[0].name = 'opt_' + optionIndex + '_target';
+    optionIndex++;
+  });
+}
+
+function toggleTarget(actionSelect) {
+  var row = actionSelect.closest('.form-row');
+  var targetInput = row.querySelector('input[type="text"]');
+  if (actionSelect.value === 'hangup') {
+    targetInput.disabled = true;
+    targetInput.value = '';
+  } else {
+    targetInput.disabled = false;
+  }
+}
+</script>
+{% endblock %}

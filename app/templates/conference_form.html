@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Edit Conference Room {{ room.extension }} — Asterisk WebUI{% endblock %}
+{% block content %}
+<h1>Edit Conference Room: {{ room.extension }}</h1>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<form method="post" class="form-card">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="form-row">
+    <div class="form-group">
+      <label for="max_members">Max Members</label>
+      <input type="number" id="max_members" name="max_members" class="form-control"
+             value="{{ room.max_members }}" min="1" max="100" required>
+    </div>
+    <div class="form-group">
+      <label for="moh_class">Music on Hold Class</label>
+      <select id="moh_class" name="moh_class" class="form-control">
+        {% for c in moh_classes %}
+        <option value="{{ c.name }}" {{ "selected" if room.moh_class == c.name }}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group" style="display:flex;align-items:center;gap:.5rem;padding-top:1.5rem">
+      <label>
+        <input type="checkbox" name="announce_join_leave"
+               {{ "checked" if room.announce_join_leave }}>
+        Announce join/leave
+      </label>
+    </div>
+    <div class="form-group" style="display:flex;align-items:center;gap:.5rem;padding-top:1.5rem">
+      <label>
+        <input type="checkbox" name="music_on_hold_when_empty"
+               {{ "checked" if room.music_on_hold_when_empty }}>
+        Play MoH when empty
+      </label>
+    </div>
+  </div>
+
+  <div class="form-group" style="margin-top:1rem">
+    <label>Profiles (read-only)</label>
+    <p class="text-muted" style="margin:0">
+      Bridge: <code>{{ room.bridge_profile }}</code> &nbsp;|&nbsp;
+      User: <code>{{ room.user_profile }}</code> &nbsp;|&nbsp;
+      Menu: <code>{{ room.menu_profile }}</code>
+    </p>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+    <a href="{{ url_for('conference.ui_list') }}" class="btn">Cancel</a>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Inbound Routes — Asterisk WebUI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Inbound Routes</h1>
+  <div>
+    <a href="{{ url_for('inbound.ui_preview') }}" class="btn btn-sm">Preview Dialplan</a>
+    <a href="{{ url_for('inbound.ui_new') }}" class="btn btn-primary">+ New Route</a>
+  </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+{% for r in routes %}
+<div class="card" style="margin-bottom:1.5rem">
+  <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+    <span>{{ r.name }}</span>
+    <span style="font-size:.8rem;font-weight:normal;opacity:.8">Route #{{ r.id }}</span>
+  </div>
+  <div class="card-body">
+    <div class="flow-steps">
+      <div class="flow-step">
+        <span class="flow-num">1</span>
+        <span class="flow-label">Spam Check</span>
+        <span class="flow-detail">AstDB family: <code>{{ r.spam_family }}</code></span>
+        <span class="flow-arrow">→ match: <code>spam-blocked</code> (Hangup 21)</span>
+      </div>
+      <div class="flow-step">
+        <span class="flow-num">2</span>
+        <span class="flow-label">Holiday Check</span>
+        <span class="flow-detail">Fixed: <code>{{ r.fixed_holiday_family }}</code>, Variable: <code>{{ r.variable_holiday_family }}</code></span>
+        <span class="flow-arrow">→ match: closed</span>
+      </div>
+      <div class="flow-step">
+        <span class="flow-num">3</span>
+        <span class="flow-label">Time Group</span>
+        <span class="flow-detail">{{ r.tg_name or "⚠ Not set" }}</span>
+      </div>
+      <div class="flow-step">
+        <span class="flow-num">4</span>
+        <span class="flow-label">OPEN</span>
+        <span class="flow-detail">→ <code>internal,{{ r.open_target }},1</code></span>
+      </div>
+      <div class="flow-step">
+        <span class="flow-num">5</span>
+        <span class="flow-label">CLOSED</span>
+        <span class="flow-detail">Playback(<code>{{ r.closed_announcement }}</code>) + VoiceMail(<code>{{ r.mailbox_list or "—" }}</code>, <code>{{ r.voicemail_flags or "su" }}</code>)</span>
+      </div>
+    </div>
+
+    <div class="form-actions" style="margin-top:1rem">
+      <a href="{{ url_for('inbound.ui_edit', route_id=r.id) }}" class="btn btn-sm btn-primary">Edit</a>
+      <form method="post" action="{{ url_for('inbound.ui_delete', route_id=r.id) }}"
+            style="display:inline" onsubmit="return confirm('Delete route \'{{ r.name }}\'?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="card">
+  <div class="card-body" style="text-align:center">
+    <p class="text-muted">No inbound routes configured.</p>
+    <p class="text-muted" style="font-size:.85rem">Create a route to manage the incoming call flow (spam → holiday → time → open/closed).</p>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

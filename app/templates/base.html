@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Asterisk WebUI{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-brand">Asterisk WebUI</div>
+    <ul class="navbar-nav">
+      <li><a href="{{ url_for('system.dashboard') }}">Dashboard</a></li>
+      <li><a href="{{ url_for('extensions.ui_list') }}">Extensions</a></li>
+      <li><a href="{{ url_for('trunks.ui_list') }}">Trunks</a></li>
+      <li><a href="{{ url_for('moh.ui_list') }}">MoH</a></li>
+      <li><a href="{{ url_for('announcements.ui_list') }}">Announcements</a></li>
+      <li><a href="{{ url_for('voicemail.ui_list') }}">Voicemail</a></li>
+      <li><a href="{{ url_for('timegroups.ui_list') }}">Time Groups</a></li>
+      <li><a href="{{ url_for('holidays.ui_list') }}">Holidays</a></li>
+      <li><a href="{{ url_for('spam.ui_list') }}">Spam</a></li>
+      <li><a href="{{ url_for('inbound.ui_list') }}">Inbound</a></li>
+      <li><a href="{{ url_for('conference.ui_list') }}">Conference</a></li>
+      <li><a href="{{ url_for('ivr.ui_list') }}">IVR</a></li>
+      <li><a href="{{ url_for('dialplan.ui_view') }}">Dialplan</a></li>
+      <li><a href="{{ url_for('backups.ui_list') }}">Backups</a></li>
+    </ul>
+    {% if session.get('username') %}
+    <ul class="navbar-nav" style="margin-left:auto">
+      <li><span style="color:#adb5bd">{{ session['username'] }}</span></li>
+      <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
+    </ul>
+    {% endif %}
+  </nav>
+  <main class="container {% block container_class %}{% endblock %}">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="footer">
+    <small>Asterisk SOHO PBX</small>
+  </footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
