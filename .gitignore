@@ -10,3 +10,4 @@ config-snapshots/
 .secret_key
 PROJECT.md
 WEBUI-PLAN.md
+PATCHING-PLAN.md
