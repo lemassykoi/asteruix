@@ -8,3 +8,5 @@ venv/
 *.db-shm
 config-snapshots/
 .secret_key
+PROJECT.md
+WEBUI-PLAN.md
