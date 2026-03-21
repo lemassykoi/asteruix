@@ -76,7 +76,7 @@ python manage.py import-conference
 systemctl enable --now asterisk-webui
 ```
 
-The WebUI listens on `127.0.0.1:8081`. Put a reverse proxy in front for external access.
+The WebUI listens on `0.0.0.0:8081` (all interfaces) so it can be accessed from the LAN — the Asterisk server typically has no GUI or local browser.
 
 ## Project Structure
 

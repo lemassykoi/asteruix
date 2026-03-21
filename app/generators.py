@@ -6,6 +6,7 @@ import os
 import shutil
 import tempfile
 
+from app.apply import sanitize_config_value as _scv
 from app.db import get_db
 
 WEBUI_CONF_DIR = "/etc/asterisk/webui"
@@ -50,9 +51,9 @@ def generate_pjsip_extensions() -> str:
     ]
 
     for r in rows:
-        ext = r["ext"]
-        callerid_name = r["callerid_name"] or f"Ext {ext}"
-        codecs = r["codecs"] or "g722,ulaw,alaw"
+        ext = _scv(r["ext"])
+        callerid_name = _scv(r["callerid_name"]) or f"Ext {ext}"
+        codecs = _scv(r["codecs"]) or "g722,ulaw,alaw"
         codec_lines = "\n".join(f"allow = {c.strip()}" for c in codecs.split(","))
 
         lines.append(f"; --- Extension {ext} ---")
@@ -63,8 +64,8 @@ def generate_pjsip_extensions() -> str:
         lines.append("context = internal")
         lines.append("disallow = all")
         lines.append(codec_lines)
-        lines.append(f"dtmf_mode = {r['dtmf_mode']}")
-        lines.append(f"language = {r['language']}")
+        lines.append(f"dtmf_mode = {_scv(r['dtmf_mode'])}")
+        lines.append(f"language = {_scv(r['language'])}")
         lines.append("rtp_symmetric = no")
         lines.append("force_rport = no")
         lines.append("rewrite_contact = no")
@@ -82,7 +83,7 @@ def generate_pjsip_extensions() -> str:
         lines.append("type = auth")
         lines.append("auth_type = userpass")
         lines.append(f"username = {ext}")
-        lines.append(f"password = {r['sip_password']}")
+        lines.append(f"password = {_scv(r['sip_password'])}")
         lines.append("")
 
         # AoR
@@ -118,9 +119,9 @@ def generate_voicemail_boxes() -> str:
             options_parts.append("delete=yes")
         options = "|".join(options_parts)
 
-        email = r["email"] or ""
-        name = r["name"] or ""
-        lines.append(f"{r['mailbox']} => {r['pin']},{name},{email},,{options}")
+        email = _scv(r["email"])
+        name = _scv(r["name"])
+        lines.append(f"{_scv(r['mailbox'])} => {_scv(r['pin'])},{name},{email},,{options}")
 
     lines.append("")
     return "\n".join(lines)
@@ -140,10 +141,10 @@ def generate_pjsip_trunks() -> str:
     ]
 
     for r in rows:
-        name = r["name"]
-        trunk_type = r["type"]  # 'registration' or 'identify'
-        host = r["host"]
-        contact = r["contact_uri"] or f"sip:{host}"
+        name = _scv(r["name"])
+        trunk_type = _scv(r["type"])  # 'registration' or 'identify'
+        host = _scv(r["host"])
+        contact = _scv(r["contact_uri"]) or f"sip:{host}"
 
         lines.append(f"; --- Trunk: {name} ({trunk_type}) ---")
 
@@ -159,7 +160,7 @@ def generate_pjsip_trunks() -> str:
         if trunk_type == "registration" and r["username"]:
             lines.append(f"outbound_auth = {name}-auth")
         if r["from_domain"]:
-            lines.append(f"from_domain = {r['from_domain']}")
+            lines.append(f"from_domain = {_scv(r['from_domain'])}")
         lines.append("")
 
         # Auth (registration trunks only)
@@ -167,8 +168,8 @@ def generate_pjsip_trunks() -> str:
             lines.append(f"[{name}-auth]")
             lines.append("type = auth")
             lines.append("auth_type = userpass")
-            lines.append(f"username = {r['username']}")
-            lines.append(f"password = {r['password']}")
+            lines.append(f"username = {_scv(r['username'])}")
+            lines.append(f"password = {_scv(r['password'])}")
             lines.append("")
 
         # AoR
@@ -180,8 +181,8 @@ def generate_pjsip_trunks() -> str:
 
         # Registration (registration trunks only)
         if trunk_type == "registration":
-            server_uri = r["registration_server_uri"] or f"sip:{host}"
-            client_uri = r["registration_client_uri"] or f"sip:{r['username']}@{host}"
+            server_uri = _scv(r["registration_server_uri"]) or f"sip:{host}"
+            client_uri = _scv(r["registration_client_uri"]) or f"sip:{_scv(r['username'])}@{host}"
             lines.append(f"[{name}-reg]")
             lines.append("type = registration")
             lines.append(f"outbound_auth = {name}-auth")
@@ -191,7 +192,7 @@ def generate_pjsip_trunks() -> str:
             lines.append("")
 
         # Identify
-        match = r["identify_match"] or host
+        match = _scv(r["identify_match"]) or host
         lines.append(f"[{name}-identify]")
         lines.append("type = identify")
         lines.append(f"endpoint = {name}")
@@ -213,9 +214,9 @@ def generate_musiconhold_classes() -> str:
     ]
 
     for r in rows:
-        lines.append(f"[{r['name']}]")
+        lines.append(f"[{_scv(r['name'])}]")
         lines.append("mode = files")
-        lines.append(f"directory = {r['directory']}")
+        lines.append(f"directory = {_scv(r['directory'])}")
         lines.append("")
 
     return "\n".join(lines)
@@ -354,7 +355,7 @@ def generate_inbound_flow() -> str:
     lines.append("exten => _X.,1,NoOp(Incoming call from trunk: ${CALLERID(all)})")
 
     for route in routes:
-        spam_family = route["spam_family"] or "spam-prefix"
+        spam_family = _scv(route["spam_family"]) or "spam-prefix"
         lines.append(f" same => n,Set(PREFIX=${{CALLERID(num):0:4}})")
         lines.append(f" same => n,GotoIf(${{DB_EXISTS({spam_family}/${{PREFIX}})}}?spam-blocked,s,1)")
 
@@ -372,14 +373,14 @@ def generate_inbound_flow() -> str:
     # --- [open] context ---
     # Use the first route's open_target (single-route SOHO design)
     route = routes[0]
-    open_target = route["open_target"] or "4900"
+    open_target = _scv(route["open_target"]) or "4900"
     lines.append("[open]")
     lines.append(f"exten => s,1,NoOp(Office OPEN — routing to {open_target})")
     lines.append(f" same => n,Goto(internal,{open_target},1)")
     lines.append("")
 
     # --- [closed] context ---
-    closed_announcement = route["closed_announcement"] or "custom-closed"
+    closed_announcement = _scv(route["closed_announcement"]) or "custom-closed"
     blast_id = route["blast_profile"]
     blast_row = None
     if blast_id:
@@ -390,8 +391,8 @@ def generate_inbound_flow() -> str:
     mailbox_list = "4900&4901&4902&4903&4904"
     vm_flags = "su"
     if blast_row:
-        mailbox_list = blast_row["mailbox_list"] or mailbox_list
-        vm_flags = blast_row["voicemail_flags"] or vm_flags
+        mailbox_list = _scv(blast_row["mailbox_list"]) or mailbox_list
+        vm_flags = _scv(blast_row["voicemail_flags"]) or vm_flags
 
     lines.append("[closed]")
     lines.append("exten => s,1,NoOp(Office CLOSED — announcement + voicemail)")
@@ -429,9 +430,9 @@ def generate_confbridge_profiles() -> str:
     ]
 
     for r in rows:
-        ext = r["extension"]
-        bridge_name = r["bridge_profile"]
-        user_name = r["user_profile"]
+        ext = _scv(r["extension"])
+        bridge_name = _scv(r["bridge_profile"])
+        user_name = _scv(r["user_profile"])
 
         # Bridge profile
         lines.append(f"[{bridge_name}]")
@@ -442,7 +443,7 @@ def generate_confbridge_profiles() -> str:
         # User profile — music_on_hold_class is a user profile option
         lines.append(f"[{user_name}]")
         lines.append("type = user")
-        lines.append(f"music_on_hold_class = {r['moh_class']}")
+        lines.append(f"music_on_hold_class = {_scv(r['moh_class'])}")
         lines.append(f"music_on_hold_when_empty = {'yes' if r['music_on_hold_when_empty'] else 'no'}")
         lines.append(f"announce_user_count = yes")
         lines.append(f"announce_join_leave = {'yes' if r['announce_join_leave'] else 'no'}")
@@ -484,9 +485,9 @@ def generate_ivr_menus() -> str:
         return "\n".join(lines)
 
     for r in rows:
-        name = r["name"]
+        name = _scv(r["name"])
         ctx = f"ivr-{name}"
-        greeting = r["greeting"] or "demo-congrats"
+        greeting = _scv(r["greeting"]) or "demo-congrats"
         timeout = r["timeout"] or 5
         invalid_retries = r["invalid_retries"] or 3
         options = _json.loads(r["options_json"])
@@ -501,9 +502,9 @@ def generate_ivr_menus() -> str:
 
         # Per-digit entries
         for opt in options:
-            digit = opt.get("digit", "")
-            action = opt.get("action", "")
-            target = opt.get("target", "")
+            digit = _scv(opt.get("digit", ""))
+            action = _scv(opt.get("action", ""))
+            target = _scv(opt.get("target", ""))
 
             if not digit:
                 continue

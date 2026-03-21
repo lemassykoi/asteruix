@@ -86,7 +86,6 @@ def api_list():
     return jsonify([
         {
             "filename": b["filename"],
-            "path": b["path"],
             "size": b["size"],
             "date": b["date"],
         }

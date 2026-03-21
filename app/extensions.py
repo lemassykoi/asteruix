@@ -7,12 +7,11 @@ import string
 
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 
-from app.asterisk_cmd import AsteriskCommandError, run_command
+from app.apply import safe_apply
 from app.audit import log_action
 from app.auth import get_current_user, login_required
 from app.db import get_db
 from app.generators import write_pjsip_extensions, write_voicemail_boxes
-from app.snapshots import take_snapshot
 
 extensions_bp = Blueprint("extensions", __name__)
 
@@ -72,15 +71,11 @@ def _validate_extension(data: dict, is_new: bool = True) -> list[str]:
 
 def _apply_config(username: str) -> tuple[bool, str]:
     """Write managed files, reload Asterisk, return (success, message)."""
-    take_snapshot("pre-extension-apply")
-    write_pjsip_extensions()
-    write_voicemail_boxes()
-    try:
-        run_command("pjsip reload")
-        run_command("module reload app_voicemail.so")
-        return True, "Config applied and Asterisk reloaded."
-    except AsteriskCommandError as exc:
-        return False, f"Asterisk reload failed: {exc}"
+    return safe_apply(
+        label="pre-extension-apply",
+        writers=[write_pjsip_extensions, write_voicemail_boxes],
+        reload_commands=["pjsip reload", "module reload app_voicemail.so"],
+    )
 
 
 def _ext_to_dict(row) -> dict:

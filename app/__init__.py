@@ -32,6 +32,7 @@ def create_app():
     # Session security
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Strict"
+    app.config["SESSION_COOKIE_SECURE"] = bool(os.environ.get("WEBUI_SECURE_COOKIES"))
     app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
 
     # CSRF protection (all POST/PUT/PATCH/DELETE validated automatically)

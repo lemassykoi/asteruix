@@ -3,6 +3,8 @@
 import functools
 
 import bcrypt
+from urllib.parse import urlparse
+
 from flask import (
     Blueprint,
     flash,
@@ -36,6 +38,18 @@ def check_password(plain: str, hashed: str) -> bool:
 def get_current_user() -> str | None:
     """Return the logged-in username or None."""
     return session.get("username")
+
+
+def _is_safe_redirect(target: str) -> bool:
+    """Return True if *target* is a safe internal redirect (relative path)."""
+    if not target:
+        return False
+    parsed = urlparse(target)
+    # Allow only relative paths (no scheme, no netloc)
+    if parsed.scheme or parsed.netloc:
+        return False
+    # Must start with / to be a valid internal path
+    return target.startswith("/")
 
 
 def login_required(view):
@@ -96,7 +110,9 @@ def login():
             session["_last_active"] = time.time()
             session.permanent = True
             log_action("login", target=row["username"], username=row["username"])
-            next_url = request.args.get("next", url_for("core.index"))
+            next_url = request.args.get("next", "")
+            if not _is_safe_redirect(next_url):
+                next_url = url_for("core.index")
             return redirect(next_url)
         flash("Invalid credentials.", "danger")
         log_action("login_failed", target=form.username.data, status="fail")

@@ -12,12 +12,11 @@ from flask import (
     send_file, url_for,
 )
 
-from app.asterisk_cmd import AsteriskCommandError, run_command
+from app.apply import safe_apply
 from app.audit import log_action
 from app.auth import get_current_user, login_required
 from app.db import get_db
 from app.generators import write_musiconhold_classes
-from app.snapshots import take_snapshot
 
 moh_bp = Blueprint("moh", __name__)
 
@@ -106,13 +105,11 @@ def _validate_class(data: dict, is_new: bool = True) -> list[str]:
 
 def _apply_config(username: str) -> tuple[bool, str]:
     """Write managed MoH config, reload Asterisk."""
-    take_snapshot("pre-moh-apply")
-    write_musiconhold_classes()
-    try:
-        run_command("moh reload")
-        return True, "Config applied and MoH reloaded."
-    except AsteriskCommandError as exc:
-        return False, f"MoH reload failed: {exc}"
+    return safe_apply(
+        label="pre-moh-apply",
+        writers=[write_musiconhold_classes],
+        reload_commands=["moh reload"],
+    )
 
 
 def _class_to_dict(row) -> dict:

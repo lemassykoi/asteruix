@@ -6,12 +6,11 @@ import re
 
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 
-from app.asterisk_cmd import AsteriskCommandError, run_command
+from app.apply import safe_apply
 from app.audit import log_action
 from app.auth import get_current_user, login_required
 from app.db import get_db
 from app.generators import generate_confbridge_profiles, write_confbridge_profiles
-from app.snapshots import take_snapshot
 
 conference_bp = Blueprint("conference", __name__)
 
@@ -46,13 +45,11 @@ def _validate_room(data: dict, is_new: bool = True) -> list[str]:
 
 def _apply_config() -> tuple[bool, str]:
     """Write managed files, reload Asterisk, return (success, message)."""
-    take_snapshot("pre-conference-apply")
-    write_confbridge_profiles()
-    try:
-        run_command("module reload app_confbridge.so")
-        return True, "Config applied and ConfBridge reloaded."
-    except AsteriskCommandError as exc:
-        return False, f"Asterisk reload failed: {exc}"
+    return safe_apply(
+        label="pre-conference-apply",
+        writers=[write_confbridge_profiles],
+        reload_commands=["module reload app_confbridge.so"],
+    )
 
 
 def _room_to_dict(row) -> dict:

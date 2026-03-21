@@ -7,12 +7,11 @@ import re
 
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 
-from app.asterisk_cmd import AsteriskCommandError, run_command
+from app.apply import safe_apply
 from app.audit import log_action
 from app.auth import get_current_user, login_required
 from app.db import get_db
 from app.generators import generate_ivr_menus, write_ivr_menus
-from app.snapshots import take_snapshot
 
 ivr_bp = Blueprint("ivr", __name__)
 
@@ -100,13 +99,11 @@ def _parse_options_from_form(form) -> list[dict]:
 
 def _apply_config(username: str) -> tuple[bool, str]:
     """Write managed files, reload Asterisk, return (success, message)."""
-    take_snapshot("pre-ivr-apply")
-    write_ivr_menus()
-    try:
-        run_command("dialplan reload")
-        return True, "Config applied and dialplan reloaded."
-    except AsteriskCommandError as exc:
-        return False, f"Asterisk reload failed: {exc}"
+    return safe_apply(
+        label="pre-ivr-apply",
+        writers=[write_ivr_menus],
+        reload_commands=["dialplan reload"],
+    )
 
 
 def _ivr_to_dict(row) -> dict:

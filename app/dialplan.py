@@ -12,6 +12,29 @@ from app.generators import generate_inbound_flow, generate_timegroups
 
 dialplan_bp = Blueprint("dialplan", __name__)
 
+_MERMAID_MAX_LABEL = 120
+
+
+def sanitize_mermaid_label(value: object) -> str:
+    """Sanitize a DB-derived value for safe inclusion in a Mermaid label.
+
+    - Converts None to empty string.
+    - Removes/escapes characters that could break Mermaid syntax or inject markup.
+    - Replaces newlines and semicolons with spaces.
+    - Trims to a reasonable length.
+    """
+    if value is None:
+        return ""
+    text = str(value)
+    # Collapse newlines / carriage returns / semicolons to spaces first
+    text = text.replace("\n", " ").replace("\r", " ").replace(";", " ")
+    # Strip characters that break Mermaid syntax or could carry markup/scripts
+    for ch in "<>\"'`{}()[]":
+        text = text.replace(ch, "")
+    # Collapse runs of whitespace
+    text = " ".join(text.split())
+    return text[:_MERMAID_MAX_LABEL]
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -133,22 +156,23 @@ def api_rendered():
 def _build_mermaid(graph: dict, urls: dict) -> str:
     """Build a Mermaid flowchart TD definition from the graph data."""
     cfg = graph["config"]
+    s = sanitize_mermaid_label
     lines = [
         "flowchart TD",
         # -- Nodes
         '    incoming["📞 Incoming Call"]',
-        '    fromtrunk["[from-trunk]\\nCheck caller ID prefix"]',
-        '    spamcheck{{"🔍 Spam Check\\nAstDB: %s"}}' % cfg["spam_family"],
-        '    blocked["🚫 spam-blocked\\nHangup(21) — call rejected"]',
+        '    fromtrunk["from-trunk\\nCheck caller ID prefix"]',
+        '    spamcheck{{"🔍 Spam Check\\nAstDB: %s"}}' % s(cfg["spam_family"]),
+        '    blocked["🚫 spam-blocked\\nHangup 21 — call rejected"]',
         '    holcheck{{"📅 Holiday Check\\nFixed: %s\\nVariable: %s"}}'
-        % (cfg["fixed_holiday_family"], cfg["variable_holiday_family"]),
-        '    timecheck{{"🕐 Time Check\\n%s"}}' % (cfg["time_group"] or "⚠ No time group"),
-        '    open["✅ Open\\nRoute to ext %s"]' % cfg["open_target"],
-        '    closed["🔴 Closed\\nPlayback(%s)"]' % cfg["closed_announcement"],
-        '    ext["📱 Extension %s\\nGoto(internal,%s,1)"]'
-        % (cfg["open_target"], cfg["open_target"]),
-        '    vm["📬 Voicemail Blast\\nVoiceMail(%s,%s)"]'
-        % (cfg["blast_mailboxes"], cfg["voicemail_flags"]),
+        % (s(cfg["fixed_holiday_family"]), s(cfg["variable_holiday_family"])),
+        '    timecheck{{"🕐 Time Check\\n%s"}}' % (s(cfg["time_group"]) or "⚠ No time group"),
+        '    open["✅ Open\\nRoute to ext %s"]' % s(cfg["open_target"]),
+        '    closed["🔴 Closed\\nPlayback %s"]' % s(cfg["closed_announcement"]),
+        '    ext["📱 Extension %s\\nGoto internal,%s,1"]'
+        % (s(cfg["open_target"]), s(cfg["open_target"])),
+        '    vm["📬 Voicemail Blast\\nVoiceMail %s,%s"]'
+        % (s(cfg["blast_mailboxes"]), s(cfg["voicemail_flags"])),
         "",
         # -- Edges
         "    incoming --> fromtrunk",

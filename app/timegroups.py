@@ -7,12 +7,11 @@ import re
 
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 
-from app.asterisk_cmd import AsteriskCommandError, run_command
+from app.apply import safe_apply
 from app.audit import log_action
 from app.auth import get_current_user, login_required
 from app.db import get_db
 from app.generators import write_timegroups
-from app.snapshots import take_snapshot
 
 timegroups_bp = Blueprint("timegroups", __name__)
 
@@ -104,13 +103,11 @@ def _parse_rules_from_form(form) -> list[dict]:
 
 def _apply_config(username: str) -> tuple[bool, str]:
     """Write managed files, reload Asterisk, return (success, message)."""
-    take_snapshot("pre-timegroup-apply")
-    write_timegroups()
-    try:
-        run_command("dialplan reload")
-        return True, "Config applied and dialplan reloaded."
-    except AsteriskCommandError as exc:
-        return False, f"Asterisk reload failed: {exc}"
+    return safe_apply(
+        label="pre-timegroup-apply",
+        writers=[write_timegroups],
+        reload_commands=["dialplan reload"],
+    )
 
 
 def _tg_to_dict(row) -> dict:

@@ -6,12 +6,11 @@ import re
 
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 
-from app.asterisk_cmd import AsteriskCommandError, run_command
+from app.apply import safe_apply
 from app.audit import log_action
 from app.auth import get_current_user, login_required
 from app.db import get_db
 from app.generators import write_pjsip_trunks
-from app.snapshots import take_snapshot
 
 trunks_bp = Blueprint("trunks", __name__)
 
@@ -56,13 +55,11 @@ def _validate_trunk(data: dict, is_new: bool = True) -> list[str]:
 
 def _apply_config(username: str) -> tuple[bool, str]:
     """Write managed files, reload Asterisk, return (success, message)."""
-    take_snapshot("pre-trunk-apply")
-    write_pjsip_trunks()
-    try:
-        run_command("pjsip reload")
-        return True, "Config applied and Asterisk reloaded."
-    except AsteriskCommandError as exc:
-        return False, f"Asterisk reload failed: {exc}"
+    return safe_apply(
+        label="pre-trunk-apply",
+        writers=[write_pjsip_trunks],
+        reload_commands=["pjsip reload"],
+    )
 
 
 def _trunk_to_dict(row) -> dict:

@@ -7,7 +7,7 @@ from flask import g, current_app
 
 DB_PATH = os.environ.get("WEBUI_DB_PATH", "/var/lib/asterisk-webui/webui.db")
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 SCHEMA_SQL = """\
 -- Schema version tracking
@@ -191,13 +191,73 @@ def init_db():
 
     if current < SCHEMA_VERSION:
         conn.executescript(SCHEMA_SQL)
-        # Migration from v1 to v2: ivr_menus table added via CREATE IF NOT EXISTS
+
+        # Migration v2 → v3: add CHECK-like triggers for critical fields
+        if current < 3:
+            _migrate_to_v3(conn)
+
         conn.execute(
             "INSERT INTO schema_version (version) VALUES (?)", (SCHEMA_VERSION,)
         )
         conn.commit()
 
     conn.close()
+
+
+def _migrate_to_v3(conn: sqlite3.Connection):
+    """Add validation triggers for critical config fields.
+
+    SQLite does not support ALTER TABLE ADD CHECK, so we use BEFORE
+    INSERT/UPDATE triggers to reject values containing characters that
+    would break Asterisk config file syntax (newlines, semicolons).
+    """
+    triggers = [
+        # Extensions: ext must be digits only, 3-6 chars
+        """
+        CREATE TRIGGER IF NOT EXISTS chk_ext_format
+        BEFORE INSERT ON extensions
+        FOR EACH ROW
+        WHEN NEW.ext NOT GLOB '[0-9][0-9][0-9]*'
+          OR length(NEW.ext) < 3 OR length(NEW.ext) > 6
+        BEGIN
+            SELECT RAISE(ABORT, 'ext must be 3-6 digits');
+        END
+        """,
+        # Trunks: name must be alphanumeric identifier
+        """
+        CREATE TRIGGER IF NOT EXISTS chk_trunk_name_format
+        BEFORE INSERT ON trunks
+        FOR EACH ROW
+        WHEN NEW.name GLOB '*[^a-zA-Z0-9_-]*'
+          OR length(NEW.name) < 1 OR length(NEW.name) > 32
+        BEGIN
+            SELECT RAISE(ABORT, 'trunk name must be 1-32 alphanumeric/hyphen/underscore chars');
+        END
+        """,
+        # Reject newlines and semicolons in extension callerid_name
+        """
+        CREATE TRIGGER IF NOT EXISTS chk_ext_callerid_nolf
+        BEFORE INSERT ON extensions
+        FOR EACH ROW
+        WHEN NEW.callerid_name LIKE '%' || X'0A' || '%'
+          OR NEW.callerid_name LIKE '%;%'
+        BEGIN
+            SELECT RAISE(ABORT, 'callerid_name must not contain newlines or semicolons');
+        END
+        """,
+        """
+        CREATE TRIGGER IF NOT EXISTS chk_ext_callerid_nolf_upd
+        BEFORE UPDATE ON extensions
+        FOR EACH ROW
+        WHEN NEW.callerid_name LIKE '%' || X'0A' || '%'
+          OR NEW.callerid_name LIKE '%;%'
+        BEGIN
+            SELECT RAISE(ABORT, 'callerid_name must not contain newlines or semicolons');
+        END
+        """,
+    ]
+    for sql in triggers:
+        conn.execute(sql)
 
 
 def register_db(app):
