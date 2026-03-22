@@ -7,7 +7,7 @@ from flask import g, current_app
 
 DB_PATH = os.environ.get("WEBUI_DB_PATH", "/var/lib/asterisk-webui/webui.db")
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 SCHEMA_SQL = """\
 -- Schema version tracking
@@ -196,6 +196,10 @@ def init_db():
         if current < 3:
             _migrate_to_v3(conn)
 
+        # Migration v3 → v4: add context column to extensions
+        if current < 4:
+            _migrate_to_v4(conn)
+
         conn.execute(
             "INSERT INTO schema_version (version) VALUES (?)", (SCHEMA_VERSION,)
         )
@@ -258,6 +262,20 @@ def _migrate_to_v3(conn: sqlite3.Connection):
     ]
     for sql in triggers:
         conn.execute(sql)
+
+
+def _migrate_to_v4(conn: sqlite3.Connection):
+    """Add context column to extensions table.
+
+    Allows overriding the PJSIP endpoint context per extension
+    (default 'internal', alternative 'from-trunk' for gateway devices).
+    """
+    try:
+        conn.execute(
+            "ALTER TABLE extensions ADD COLUMN context TEXT NOT NULL DEFAULT 'internal'"
+        )
+    except sqlite3.OperationalError:
+        pass  # Column already exists
 
 
 def register_db(app):

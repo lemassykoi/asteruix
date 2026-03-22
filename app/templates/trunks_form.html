@@ -24,9 +24,10 @@
   <div class="form-row">
     <div class="form-group">
       <label for="type">Trunk Type</label>
-      <select id="type" name="type" class="form-control" onchange="toggleRegistrationFields()">
+      <select id="type" name="type" class="form-control" onchange="toggleTrunkTypeFields()">
         <option value="registration" {{ "selected" if trunk.type == "registration" }}>Registration (SIP provider)</option>
-        <option value="identify" {{ "selected" if trunk.type == "identify" }}>Identify only (local gateway)</option>
+        <option value="identify" {{ "selected" if trunk.type == "identify" }}>Identify only (IP match)</option>
+        <option value="device" {{ "selected" if trunk.type == "device" }}>Device (registers to us)</option>
       </select>
     </div>
     <div class="form-group" style="display:flex;align-items:end;padding-bottom:.5rem">
@@ -45,16 +46,18 @@
   </div>
 
   <div id="registration-fields">
-    <div class="form-row">
-      <div class="form-group">
-        <label for="username">Username</label>
-        <input type="text" id="username" name="username" class="form-control"
-               value="{{ trunk.username }}" placeholder="SIP username">
-      </div>
-      <div class="form-group">
-        <label for="password">Password</label>
-        <input type="password" id="password" name="password" class="form-control"
-               placeholder="{{ '(unchanged)' if not is_new else 'SIP password' }}">
+    <div id="auth-fields">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" class="form-control"
+                 value="{{ trunk.username }}" placeholder="SIP username / auth ID">
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" class="form-control"
+                 placeholder="{{ '(unchanged)' if not is_new else 'SIP password' }}">
+        </div>
       </div>
     </div>
 
@@ -71,25 +74,28 @@
       </div>
     </div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label for="registration_server_uri">Registration Server URI</label>
-        <input type="text" id="registration_server_uri" name="registration_server_uri" class="form-control"
-               value="{{ trunk.registration_server_uri }}" placeholder="sip:host (auto if empty)">
-      </div>
-      <div class="form-group">
-        <label for="registration_client_uri">Registration Client URI</label>
-        <input type="text" id="registration_client_uri" name="registration_client_uri" class="form-control"
-               value="{{ trunk.registration_client_uri }}" placeholder="sip:user@host (auto if empty)">
+    <div id="registration-uri-fields">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="registration_server_uri">Registration Server URI</label>
+          <input type="text" id="registration_server_uri" name="registration_server_uri" class="form-control"
+                 value="{{ trunk.registration_server_uri }}" placeholder="sip:host (auto if empty)">
+        </div>
+        <div class="form-group">
+          <label for="registration_client_uri">Registration Client URI</label>
+          <input type="text" id="registration_client_uri" name="registration_client_uri" class="form-control"
+                 value="{{ trunk.registration_client_uri }}" placeholder="sip:user@host (auto if empty)">
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="form-group">
+  <div class="form-group" id="identify-match-group">
     <label for="identify_match">Identify Match (IP / hostname)</label>
     <input type="text" id="identify_match" name="identify_match" class="form-control"
-           value="{{ trunk.identify_match }}" required
-           placeholder="e.g. sip.w3tel.fr or 10.1.1.100">
+           value="{{ trunk.identify_match }}"
+           placeholder="e.g. sip.w3tel.fr or 10.1.1.100 (optional for device trunks)">
+    <small class="form-text">For device trunks, this is optional — the device authenticates by username.</small>
   </div>
 
   <div class="form-actions">
@@ -103,11 +109,31 @@
 
 {% block scripts %}
 <script>
-function toggleRegistrationFields() {
+function toggleTrunkTypeFields() {
   var type = document.getElementById('type').value;
   var regFields = document.getElementById('registration-fields');
-  regFields.style.display = (type === 'registration') ? '' : 'none';
+  var identifyField = document.getElementById('identify-match-group');
+  var regUriFields = document.getElementById('registration-uri-fields');
+  var authFields = document.getElementById('auth-fields');
+
+  if (type === 'registration') {
+    regFields.style.display = '';
+    authFields.style.display = '';
+    regUriFields.style.display = '';
+    identifyField.style.display = '';
+    document.getElementById('identify_match').required = true;
+  } else if (type === 'device') {
+    regFields.style.display = '';
+    authFields.style.display = '';
+    regUriFields.style.display = 'none';
+    identifyField.style.display = '';
+    document.getElementById('identify_match').required = false;
+  } else {
+    regFields.style.display = 'none';
+    identifyField.style.display = '';
+    document.getElementById('identify_match').required = true;
+  }
 }
-toggleRegistrationFields();
+toggleTrunkTypeFields();
 </script>
 {% endblock %}

@@ -11,6 +11,33 @@
   {% endfor %}
 {% endwith %}
 
+<!-- Blocked calls log -->
+<div class="form-card" style="margin-bottom:2rem">
+  <h2>Blocked Calls <small style="color:#6c757d;font-weight:normal">(last {{ blocked|length }})</small></h2>
+  {% if blocked %}
+  <table class="table" style="margin-top:1rem">
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Caller ID</th>
+        <th>Prefix Matched</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in blocked %}
+      <tr>
+        <td style="white-space:nowrap">{{ b.timestamp }}</td>
+        <td><code>{{ b.caller_id }}</code></td>
+        <td><code>{{ b.prefix }}</code></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="margin-top:1rem;color:#6c757d">No blocked calls recorded yet.</p>
+  {% endif %}
+</div>
+
 <!-- Add single prefix -->
 <div class="form-card" style="margin-bottom:2rem">
   <h2>Add Prefix</h2>

@@ -6,6 +6,7 @@ No config file generation needed — changes take effect immediately.
 
 from __future__ import annotations
 
+import os
 import re
 
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
@@ -18,11 +19,40 @@ spam_bp = Blueprint("spam", __name__)
 
 SPAM_FAMILY = "spam-prefix"
 PREFIX_RE = re.compile(r"^[0-9]{4}$")
+LOG_FILE = "/var/log/asterisk/full"
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _get_blocked_calls(limit: int = 100) -> list[dict]:
+    """Parse Asterisk log for blocked spam calls, return newest first."""
+    if not os.path.isfile(LOG_FILE):
+        return []
+
+    blocked = []
+    blocked_re = re.compile(
+        r"\[(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\.\d+\]\s+"
+        r"WARNING\[\d+\].*Blocked spam call from (\S+)\s+-\s+prefix\s+(\S+)"
+    )
+
+    try:
+        with open(LOG_FILE, "r") as f:
+            for line in f:
+                m = blocked_re.search(line)
+                if m:
+                    blocked.append({
+                        "timestamp": m.group(1),
+                        "caller_id": m.group(2),
+                        "prefix": m.group(3),
+                    })
+    except (OSError, PermissionError):
+        return []
+
+    # Return newest first, limited
+    return blocked[-limit:][::-1]
+
 
 def _get_prefixes() -> list[dict]:
     """Fetch spam prefixes from AstDB, return list of {key, value}."""
@@ -42,6 +72,13 @@ def _get_prefixes() -> list[dict]:
 def api_list():
     prefixes = _get_prefixes()
     return jsonify(prefixes)
+
+
+@spam_bp.route("/api/v1/spam-prefixes/blocked")
+@login_required
+def api_blocked():
+    calls = _get_blocked_calls()
+    return jsonify(calls)
 
 
 @spam_bp.route("/api/v1/spam-prefixes", methods=["POST"])
@@ -90,7 +127,8 @@ def api_delete(prefix):
 def ui_list():
     prefixes = _get_prefixes()
     prefixes.sort(key=lambda p: p["key"])
-    return render_template("spam_list.html", prefixes=prefixes)
+    blocked = _get_blocked_calls()
+    return render_template("spam_list.html", prefixes=prefixes, blocked=blocked)
 
 
 @spam_bp.route("/spam-prefixes/add", methods=["POST"])

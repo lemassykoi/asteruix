@@ -17,6 +17,7 @@ extensions_bp = Blueprint("extensions", __name__)
 
 VALID_CODECS = {"g722", "ulaw", "alaw", "g729", "opus", "gsm"}
 VALID_DTMF = {"rfc4733", "inband", "info", "auto"}
+VALID_CONTEXTS = {"internal", "from-trunk"}
 
 
 # ---------------------------------------------------------------------------
@@ -57,6 +58,10 @@ def _validate_extension(data: dict, is_new: bool = True) -> list[str]:
     dtmf = data.get("dtmf_mode", "rfc4733")
     if dtmf not in VALID_DTMF:
         errors.append(f"Invalid DTMF mode: {dtmf}")
+
+    ctx = data.get("context", "internal")
+    if ctx not in VALID_CONTEXTS:
+        errors.append(f"Invalid context: {ctx}")
 
     mc = data.get("max_contacts", "3")
     try:
@@ -113,8 +118,8 @@ def api_create():
 
     db.execute(
         "INSERT INTO extensions (ext, callerid_name, sip_password, vm_pin, "
-        "enabled, max_contacts, codecs, language, dtmf_mode, musicclass) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "enabled, max_contacts, codecs, language, dtmf_mode, musicclass, context) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             ext,
             data.get("callerid_name", f"Ext {ext}"),
@@ -126,6 +131,7 @@ def api_create():
             data.get("language", "fr"),
             data.get("dtmf_mode", "rfc4733"),
             data.get("musicclass", "default"),
+            data.get("context", "internal"),
         ),
     )
     # Create matching voicemail box
@@ -178,7 +184,7 @@ def api_update(ext):
 
     db.execute(
         "UPDATE extensions SET callerid_name=?, sip_password=?, vm_pin=?, "
-        "enabled=?, max_contacts=?, codecs=?, language=?, dtmf_mode=?, musicclass=? "
+        "enabled=?, max_contacts=?, codecs=?, language=?, dtmf_mode=?, musicclass=?, context=? "
         "WHERE ext=?",
         (
             data.get("callerid_name", existing["callerid_name"]),
@@ -190,6 +196,7 @@ def api_update(ext):
             data.get("language", existing["language"]),
             data.get("dtmf_mode", existing["dtmf_mode"]),
             data.get("musicclass", existing["musicclass"]),
+            data.get("context", existing["context"]),
             ext,
         ),
     )
@@ -285,6 +292,7 @@ def ui_new():
             "language": request.form.get("language", "fr").strip(),
             "dtmf_mode": request.form.get("dtmf_mode", "rfc4733").strip(),
             "musicclass": request.form.get("musicclass", "default").strip(),
+            "context": request.form.get("context", "internal").strip(),
         }
         errors = _validate_extension(data, is_new=True)
         db = get_db()
@@ -298,13 +306,13 @@ def ui_new():
 
         db.execute(
             "INSERT INTO extensions (ext, callerid_name, sip_password, vm_pin, "
-            "enabled, max_contacts, codecs, language, dtmf_mode, musicclass) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "enabled, max_contacts, codecs, language, dtmf_mode, musicclass, context) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 data["ext"], data["callerid_name"], data["sip_password"],
                 data["vm_pin"], data["enabled"], int(data["max_contacts"]),
                 data["codecs"], data["language"], data["dtmf_mode"],
-                data["musicclass"],
+                data["musicclass"], data["context"],
             ),
         )
         db.execute(
@@ -326,7 +334,7 @@ def ui_new():
         "ext": "", "callerid_name": "", "sip_password": _generate_password(),
         "vm_pin": "1234", "enabled": 1, "max_contacts": 3,
         "codecs": "g722,ulaw,alaw", "language": "fr", "dtmf_mode": "rfc4733",
-        "musicclass": "default",
+        "musicclass": "default", "context": "internal",
     }
     return render_template("extensions_form.html", ext=defaults, is_new=True)
 
@@ -352,6 +360,7 @@ def ui_edit(ext_id):
             "language": request.form.get("language", "").strip() or existing["language"],
             "dtmf_mode": request.form.get("dtmf_mode", "").strip() or existing["dtmf_mode"],
             "musicclass": request.form.get("musicclass", "").strip() or existing["musicclass"],
+            "context": request.form.get("context", "").strip() or existing["context"],
         }
         errors = _validate_extension(data, is_new=False)
         if errors:
@@ -362,12 +371,13 @@ def ui_edit(ext_id):
         before = _ext_to_dict(existing)
         db.execute(
             "UPDATE extensions SET callerid_name=?, sip_password=?, vm_pin=?, "
-            "enabled=?, max_contacts=?, codecs=?, language=?, dtmf_mode=?, musicclass=? "
+            "enabled=?, max_contacts=?, codecs=?, language=?, dtmf_mode=?, musicclass=?, context=? "
             "WHERE ext=?",
             (
                 data["callerid_name"], data["sip_password"], data["vm_pin"],
                 data["enabled"], int(data["max_contacts"]), data["codecs"],
-                data["language"], data["dtmf_mode"], data["musicclass"], ext_id,
+                data["language"], data["dtmf_mode"], data["musicclass"],
+                data["context"], ext_id,
             ),
         )
         db.execute(

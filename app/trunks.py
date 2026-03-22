@@ -14,7 +14,7 @@ from app.generators import write_pjsip_trunks
 
 trunks_bp = Blueprint("trunks", __name__)
 
-VALID_TYPES = {"registration", "identify"}
+VALID_TYPES = {"registration", "identify", "device"}
 NAME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9_-]{0,31}$")
 
 
@@ -40,14 +40,14 @@ def _validate_trunk(data: dict, is_new: bool = True) -> list[str]:
     if not host:
         errors.append("Host is required.")
 
-    if trunk_type == "registration":
+    if trunk_type in ("registration", "device"):
         if not data.get("username", "").strip():
-            errors.append("Username is required for registration trunks.")
+            errors.append(f"Username is required for {trunk_type} trunks.")
         if is_new and not data.get("password", "").strip():
-            errors.append("Password is required for registration trunks.")
+            errors.append(f"Password is required for {trunk_type} trunks.")
 
     identify_match = data.get("identify_match", "").strip()
-    if not identify_match:
+    if trunk_type != "device" and not identify_match:
         errors.append("Identify match (IP/hostname) is required.")
 
     return errors

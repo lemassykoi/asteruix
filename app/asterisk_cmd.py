@@ -364,6 +364,33 @@ def get_uptime() -> AsteriskUptime:
     return parse_uptime(run_command("core show uptime"))
 
 
+def abbreviate_uptime(s: str) -> str:
+    """Shorten uptime string: '10 hours, 41 minutes, 27 seconds' → '10h 41m 27s'."""
+    replacements = [
+        (" days", "d"), (" day", "d"),
+        (" hours", "h"), (" hour", "h"),
+        (" minutes", "m"), (" minute", "m"),
+        (" seconds", "s"), (" second", "s"),
+    ]
+    result = s
+    for long, short in replacements:
+        result = result.replace(long, short)
+    return result.replace(",", "")
+
+
+def get_server_uptime() -> str:
+    """Return the physical server uptime as an abbreviated string."""
+    try:
+        result = subprocess.run(
+            ["uptime", "-p"],
+            capture_output=True, text=True, timeout=5,
+        )
+        raw = result.stdout.strip().removeprefix("up ")
+        return abbreviate_uptime(raw)
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return "—"
+
+
 def get_fail2ban_status(jail: str = "asterisk") -> Fail2banStatus:
     """Query fail2ban-client for jail status.
 

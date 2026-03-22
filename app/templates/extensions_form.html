@@ -79,12 +79,24 @@
       <input type="text" id="musicclass" name="musicclass" class="form-control"
              value="{{ ext.musicclass }}" placeholder="default">
     </div>
+    <div class="form-group">
+      <label for="context">Dialplan Context</label>
+      <select id="context" name="context" class="form-control">
+        <option value="internal" {{ "selected" if ext.context == "internal" }}>internal</option>
+        <option value="from-trunk" {{ "selected" if ext.context == "from-trunk" }}>from-trunk</option>
+      </select>
+      <small class="text-muted">Use <strong>from-trunk</strong> for gateway devices (e.g. GOIP) so incoming calls flow through the inbound route (spam → holiday → time → open/closed). Extensions with from-trunk cannot make outbound or internal calls.</small>
+    </div>
+  </div>
+
+  <div class="form-row">
     <div class="form-group" style="display:flex;align-items:end;padding-bottom:.5rem">
       <label>
         <input type="checkbox" name="enabled" {{ "checked" if ext.enabled }}>
         Enabled
       </label>
     </div>
+    <div class="form-group"></div>
   </div>
 
   <div class="form-actions">

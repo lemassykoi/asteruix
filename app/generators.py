@@ -61,7 +61,7 @@ def generate_pjsip_extensions() -> str:
         # Endpoint
         lines.append(f"[{ext}]")
         lines.append("type = endpoint")
-        lines.append("context = internal")
+        lines.append(f"context = {_scv(r['context']) or 'internal'}")
         lines.append("disallow = all")
         lines.append(codec_lines)
         lines.append(f"dtmf_mode = {_scv(r['dtmf_mode'])}")
@@ -142,62 +142,112 @@ def generate_pjsip_trunks() -> str:
 
     for r in rows:
         name = _scv(r["name"])
-        trunk_type = _scv(r["type"])  # 'registration' or 'identify'
+        trunk_type = _scv(r["type"])  # 'registration', 'identify', or 'device'
         host = _scv(r["host"])
         contact = _scv(r["contact_uri"]) or f"sip:{host}"
 
         lines.append(f"; --- Trunk: {name} ({trunk_type}) ---")
 
-        # Endpoint
-        lines.append(f"[{name}]")
-        lines.append("type = endpoint")
-        lines.append("context = from-trunk")
-        lines.append("disallow = all")
-        lines.append("allow = g722")
-        lines.append("allow = ulaw")
-        lines.append("allow = alaw")
-        lines.append(f"aors = {name}")
-        if trunk_type == "registration" and r["username"]:
-            lines.append(f"outbound_auth = {name}-auth")
-        if r["from_domain"]:
-            lines.append(f"from_domain = {_scv(r['from_domain'])}")
-        lines.append("")
+        if trunk_type == "device":
+            # Device trunk: remote device registers TO us (like a phone,
+            # but with context=from-trunk).  Generates endpoint + inbound
+            # auth + AoR with max_contacts.  No outbound registration.
+            username = _scv(r["username"])
 
-        # Auth (registration trunks only)
-        if trunk_type == "registration" and r["username"]:
+            # Endpoint
+            lines.append(f"[{name}]")
+            lines.append("type = endpoint")
+            lines.append("context = from-trunk")
+            lines.append("disallow = all")
+            lines.append("allow = alaw")
+            lines.append("allow = ulaw")
+            lines.append("allow = g729")
+            lines.append("dtmf_mode = rfc4733")
+            lines.append("language = fr")
+            lines.append("rtp_symmetric = yes")
+            lines.append("force_rport = yes")
+            lines.append("rewrite_contact = yes")
+            lines.append("direct_media = no")
+            lines.append(f"auth = {name}-auth")
+            lines.append(f"aors = {name}")
+            lines.append("")
+
+            # Auth (inbound — device authenticates to us)
             lines.append(f"[{name}-auth]")
             lines.append("type = auth")
             lines.append("auth_type = userpass")
-            lines.append(f"username = {_scv(r['username'])}")
+            lines.append(f"username = {username}")
             lines.append(f"password = {_scv(r['password'])}")
             lines.append("")
 
-        # AoR
-        lines.append(f"[{name}]")
-        lines.append("type = aor")
-        lines.append(f"contact = {contact}")
-        lines.append("qualify_frequency = 30")
-        lines.append("")
-
-        # Registration (registration trunks only)
-        if trunk_type == "registration":
-            server_uri = _scv(r["registration_server_uri"]) or f"sip:{host}"
-            client_uri = _scv(r["registration_client_uri"]) or f"sip:{_scv(r['username'])}@{host}"
-            lines.append(f"[{name}-reg]")
-            lines.append("type = registration")
-            lines.append(f"outbound_auth = {name}-auth")
-            lines.append(f"server_uri = {server_uri}")
-            lines.append(f"client_uri = {client_uri}")
-            lines.append("retry_interval = 30")
+            # AoR (dynamic — device registers to us)
+            lines.append(f"[{name}]")
+            lines.append("type = aor")
+            lines.append("max_contacts = 1")
+            lines.append("remove_existing = yes")
+            lines.append("qualify_frequency = 30")
             lines.append("")
 
-        # Identify
-        match = _scv(r["identify_match"]) or host
-        lines.append(f"[{name}-identify]")
-        lines.append("type = identify")
-        lines.append(f"endpoint = {name}")
-        lines.append(f"match = {match}")
-        lines.append("")
+            # Optional IP-based identify (if identify_match is set)
+            if r["identify_match"]:
+                lines.append(f"[{name}-identify]")
+                lines.append("type = identify")
+                lines.append(f"endpoint = {name}")
+                lines.append(f"match = {_scv(r['identify_match'])}")
+                lines.append("")
+        else:
+            # Registration or identify trunk (SIP provider)
+
+            # Endpoint
+            lines.append(f"[{name}]")
+            lines.append("type = endpoint")
+            lines.append("context = from-trunk")
+            lines.append("disallow = all")
+            lines.append("allow = g722")
+            lines.append("allow = ulaw")
+            lines.append("allow = alaw")
+            lines.append(f"aors = {name}")
+            if trunk_type == "registration" and r["username"]:
+                lines.append(f"outbound_auth = {name}-auth")
+            if r["from_domain"]:
+                lines.append(f"from_domain = {_scv(r['from_domain'])}")
+            lines.append("")
+
+            # Auth (registration trunks only)
+            if trunk_type == "registration" and r["username"]:
+                lines.append(f"[{name}-auth]")
+                lines.append("type = auth")
+                lines.append("auth_type = userpass")
+                lines.append(f"username = {_scv(r['username'])}")
+                lines.append(f"password = {_scv(r['password'])}")
+                lines.append("")
+
+            # AoR
+            lines.append(f"[{name}]")
+            lines.append("type = aor")
+            lines.append(f"contact = {contact}")
+            lines.append("qualify_frequency = 30")
+            lines.append("")
+
+            # Registration (registration trunks only)
+            if trunk_type == "registration":
+                server_uri = _scv(r["registration_server_uri"]) or f"sip:{host}"
+                client_uri = _scv(r["registration_client_uri"]) or f"sip:{_scv(r['username'])}@{host}"
+                lines.append(f"[{name}-reg]")
+                lines.append("type = registration")
+                lines.append(f"outbound_auth = {name}-auth")
+                lines.append(f"server_uri = {server_uri}")
+                lines.append(f"client_uri = {client_uri}")
+                lines.append("retry_interval = 30")
+                lines.append("")
+
+            # Identify
+            match = _scv(r["identify_match"]) or host
+            lines.append(f"[{name}-identify]")
+            lines.append("type = identify")
+            lines.append(f"endpoint = {name}")
+            lines.append(f"match = {match}")
+            lines.append("")
 
     return "\n".join(lines)
 
@@ -351,16 +401,21 @@ def generate_inbound_flow() -> str:
         return "\n".join(lines)
 
     # --- [from-trunk] context ---
-    lines.append("[from-trunk]")
-    lines.append("exten => _X.,1,NoOp(Incoming call from trunk: ${CALLERID(all)})")
-
+    # Build the spam-check + route logic once, then emit for both
+    # _X. (digit-based DID) and s (bare INVITE, e.g. W3TEL/OVH)
+    spam_steps = []
     for route in routes:
         spam_family = _scv(route["spam_family"]) or "spam-prefix"
-        lines.append(f" same => n,Set(PREFIX=${{CALLERID(num):0:4}})")
-        lines.append(f" same => n,GotoIf(${{DB_EXISTS({spam_family}/${{PREFIX}})}}?spam-blocked,s,1)")
+        spam_steps.append("Set(PREFIX=${CALLERID(num):0:4})")
+        spam_steps.append(f"GotoIf(${{DB_EXISTS({spam_family}/${{PREFIX}})}}?spam-blocked,s,1)")
 
-    lines.append(" same => n,Goto(time-check,s,1)")
-    lines.append(" same => n,Hangup()")
+    lines.append("[from-trunk]")
+    for exten in ("_X.", "s"):
+        lines.append(f"exten => {exten},1,NoOp(Incoming call from trunk: ${{CALLERID(all)}})")
+        for step in spam_steps:
+            lines.append(f" same => n,{step}")
+        lines.append(" same => n,Goto(time-check,s,1)")
+        lines.append(" same => n,Hangup()")
     lines.append("")
 
     # --- [spam-blocked] context ---

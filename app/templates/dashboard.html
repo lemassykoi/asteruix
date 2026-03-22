@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — Asterisk WebUI{% endblock %}
+{% block container_class %}container-wide{% endblock %}
 {% block content %}
 <h1>Dashboard</h1>
 
@@ -22,16 +23,21 @@
     </div>
   </div>
 
-  {# --- Uptime --- #}
+  {# --- Server Uptime --- #}
   <div class="card">
-    <div class="card-header">Uptime</div>
+    <div class="card-header">Server</div>
     <div class="card-body">
-      {% if uptime %}
-      <div class="stat-value">{{ uptime.system_uptime }}</div>
-      <div class="stat-label">Last reload: {{ uptime.last_reload }}</div>
-      {% else %}
-      <div class="stat-value text-muted">—</div>
-      {% endif %}
+      <div class="stat-value" id="server-uptime">{{ server_uptime }}</div>
+      <div class="stat-label">machine uptime</div>
+    </div>
+  </div>
+
+  {# --- Asterisk Uptime --- #}
+  <div class="card">
+    <div class="card-header">Asterisk Service</div>
+    <div class="card-body">
+      <div class="stat-value" id="ast-uptime">{{ ast_uptime }}</div>
+      <div class="stat-label" id="ast-reload">reload: {{ ast_reload }}</div>
     </div>
   </div>
 
@@ -39,7 +45,7 @@
   <div class="card">
     <div class="card-header">Endpoints</div>
     <div class="card-body">
-      <div class="stat-value">{{ registered_count }} / {{ total_count }}</div>
+      <div class="stat-value" id="ep-count">{{ registered_count }} / {{ total_count }}</div>
       <div class="stat-label">registered</div>
     </div>
   </div>
@@ -48,7 +54,7 @@
   <div class="card">
     <div class="card-header">Active Calls</div>
     <div class="card-body">
-      <div class="stat-value">{{ call_count }}</div>
+      <div class="stat-value" id="call-count">{{ call_count }}</div>
       <div class="stat-label">channels</div>
     </div>
   </div>
@@ -57,10 +63,8 @@
   <div class="card">
     <div class="card-header">Fail2ban</div>
     <div class="card-body">
-      <div class="stat-value {% if fail2ban.currently_banned > 0 %}text-danger{% endif %}">
-        {{ fail2ban.currently_banned }} banned
-      </div>
-      <div class="stat-label">{{ fail2ban.currently_failed }} currently failed</div>
+      <div class="stat-value" id="f2b-banned">{{ fail2ban.currently_banned }} banned</div>
+      <div class="stat-label" id="f2b-failed">{{ fail2ban.currently_failed }} currently failed</div>
     </div>
   </div>
 
@@ -77,7 +81,7 @@
       <th>RTT</th>
     </tr>
   </thead>
-  <tbody>
+  <tbody id="ep-tbody">
     {% for ep in endpoints %}
     <tr>
       <td>{{ ep.name }}</td>
@@ -106,7 +110,8 @@
   </tbody>
 </table>
 
-{# --- Active Channels Table (only shown when calls exist) --- #}
+{# --- Active Channels Table --- #}
+<div id="channels-section">
 {% if channels %}
 <h2>Active Channels</h2>
 <table class="table">
@@ -134,7 +139,9 @@
   </tbody>
 </table>
 {% endif %}
+</div>
 
+<div id="banned-section">
 {% if fail2ban.banned_ips %}
 <h2>Banned IPs</h2>
 <ul class="banned-list">
@@ -143,5 +150,100 @@
   {% endfor %}
 </ul>
 {% endif %}
+</div>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  var POLL_MS = 3000;
+
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function refresh() {
+    // Endpoints
+    fetch('/api/v1/system/endpoints').then(function(r){ return r.json(); }).then(function(eps) {
+      var reg = 0, total = eps.length;
+      var rows = '';
+      eps.forEach(function(ep) {
+        var hasContact = ep.contacts && ep.contacts.length > 0;
+        if (hasContact) reg++;
+        var badgeClass = hasContact ? 'badge-ok' : 'badge-off';
+        var contacts = hasContact
+          ? ep.contacts.map(function(c){ return esc(c.uri); }).join('<br>')
+          : '<span class="text-muted">—</span>';
+        var rtts = hasContact
+          ? ep.contacts.map(function(c){ return c.rtt_ms !== null ? c.rtt_ms.toFixed(1) + ' ms' : ''; }).join('<br>')
+          : '<span class="text-muted">—</span>';
+        rows += '<tr>'
+          + '<td>' + esc(ep.name) + '</td>'
+          + '<td><span class="badge ' + badgeClass + '">' + esc(ep.state) + '</span></td>'
+          + '<td>' + contacts + '</td>'
+          + '<td>' + rtts + '</td>'
+          + '</tr>';
+      });
+      document.getElementById('ep-tbody').innerHTML = rows;
+      document.getElementById('ep-count').textContent = reg + ' / ' + total;
+    }).catch(function(){});
+
+    // Active calls
+    fetch('/api/v1/system/calls').then(function(r){ return r.json(); }).then(function(chs) {
+      document.getElementById('call-count').textContent = chs.length;
+      var sec = document.getElementById('channels-section');
+      if (chs.length === 0) {
+        sec.innerHTML = '';
+        return;
+      }
+      var html = '<h2>Active Channels</h2><table class="table"><thead><tr>'
+        + '<th>Channel</th><th>Caller ID</th><th>Extension</th><th>State</th><th>Duration</th><th>Bridged To</th>'
+        + '</tr></thead><tbody>';
+      chs.forEach(function(ch) {
+        html += '<tr>'
+          + '<td>' + esc(ch.channel) + '</td>'
+          + '<td>' + esc(ch.caller_id) + '</td>'
+          + '<td>' + esc(ch.extension) + '</td>'
+          + '<td>' + esc(ch.state) + '</td>'
+          + '<td>' + esc(ch.duration) + 's</td>'
+          + '<td>' + esc(ch.bridged_to) + '</td>'
+          + '</tr>';
+      });
+      html += '</tbody></table>';
+      sec.innerHTML = html;
+    }).catch(function(){});
+
+    // Status (uptime + fail2ban)
+    fetch('/api/v1/system/status').then(function(r){ return r.json(); }).then(function(st) {
+      if (st.server_uptime) {
+        document.getElementById('server-uptime').textContent = st.server_uptime;
+      }
+      if (st.uptime && !st.uptime.error) {
+        document.getElementById('ast-uptime').textContent = st.uptime.system_uptime;
+        document.getElementById('ast-reload').textContent = 'reload: ' + st.uptime.last_reload;
+      }
+      if (st.fail2ban) {
+        var b = st.fail2ban;
+        var el = document.getElementById('f2b-banned');
+        el.textContent = b.currently_banned + ' banned';
+        el.className = 'stat-value' + (b.currently_banned > 0 ? ' text-danger' : '');
+        document.getElementById('f2b-failed').textContent = b.currently_failed + ' currently failed';
+        var bsec = document.getElementById('banned-section');
+        if (b.banned_ips && b.banned_ips.length > 0) {
+          bsec.innerHTML = '<h2>Banned IPs</h2><ul class="banned-list">'
+            + b.banned_ips.map(function(ip){ return '<li>' + esc(ip) + '</li>'; }).join('')
+            + '</ul>';
+        } else {
+          bsec.innerHTML = '';
+        }
+      }
+    }).catch(function(){});
+  }
+
+  setInterval(refresh, POLL_MS);
+})();
+</script>
 {% endblock %}

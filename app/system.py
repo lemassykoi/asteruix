@@ -7,9 +7,11 @@ from flask import Blueprint, jsonify, render_template
 from app.auth import login_required
 from app.asterisk_cmd import (
     AsteriskCommandError,
+    abbreviate_uptime,
     get_channels,
     get_endpoints,
     get_fail2ban_status,
+    get_server_uptime,
     get_uptime,
     get_version,
 )
@@ -32,10 +34,15 @@ def api_status():
         data["version"] = {"error": str(exc)}
 
     try:
-        data["uptime"] = asdict(get_uptime())
+        ut = get_uptime()
+        data["uptime"] = {
+            "system_uptime": abbreviate_uptime(ut.system_uptime),
+            "last_reload": abbreviate_uptime(ut.last_reload),
+        }
     except AsteriskCommandError as exc:
         data["uptime"] = {"error": str(exc)}
 
+    data["server_uptime"] = get_server_uptime()
     data["fail2ban"] = asdict(get_fail2ban_status())
     return jsonify(data)
 
@@ -103,10 +110,15 @@ def dashboard():
         ctx["error"] = str(exc)
 
     try:
-        ctx["uptime"] = get_uptime()
+        ut = get_uptime()
+        ctx["ast_uptime"] = abbreviate_uptime(ut.system_uptime)
+        ctx["ast_reload"] = abbreviate_uptime(ut.last_reload)
     except AsteriskCommandError as exc:
-        ctx["uptime"] = None
+        ctx["ast_uptime"] = "—"
+        ctx["ast_reload"] = "—"
         ctx["error"] = str(exc)
+
+    ctx["server_uptime"] = get_server_uptime()
 
     try:
         eps = get_endpoints()
