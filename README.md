@@ -4,15 +4,15 @@ A lightweight web interface for managing an Asterisk 22 LTS PBX, built with Flas
 
 ## Features
 
-- **Dashboard** — Live system status: Asterisk version, uptime, registered endpoints, active calls, Fail2ban bans
-- **Extensions** — CRUD for PJSIP endpoints (4900–4904) with voicemail box sync
-- **Trunks** — Registration-based and identify-only SIP trunk management
+- **Dashboard** — Live system status with auto-refresh (3s polling): Asterisk version, server/service uptime, registered endpoints, active calls, Fail2ban bans
+- **Extensions** — CRUD for PJSIP endpoints (4900–4904) with voicemail box sync, per-extension dialplan context
+- **Trunks** — Registration, identify-only, and device (registers to us) SIP trunk management
 - **Music on Hold** — MoH class/track management with automatic MP3/WAV/OGG → 16kHz WAV conversion
 - **Announcements** — Upload and activate closed-hours announcements (auto-converted to G722-compatible WAV)
 - **Voicemail** — Per-mailbox message listing, in-browser playback, delete, blast configuration
 - **Time Groups** — Business hours rules with day/time selectors and overlap detection
 - **Holidays** — Fixed (MMDD) and variable (YYYYMMDD) holiday management via AstDB
-- **Spam Blocking** — 4-digit caller ID prefix blacklist via AstDB, single + bulk import
+- **Spam Blocking** — 4-digit caller ID prefix blacklist via AstDB, single + bulk import, blocked calls log
 - **Inbound Routes** — Visual 5-step call flow editor (spam → holidays → time → open/closed routing)
 - **Conference Rooms** — ConfBridge room settings (max members, MoH class, announce join/leave)
 - **Dialplan Visualization** — Read-only CSS flowchart of the inbound call path with live config values
