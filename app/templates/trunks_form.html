@@ -45,6 +45,13 @@
            placeholder="e.g. sip.w3tel.fr or 10.1.1.100">
   </div>
 
+  <div class="form-group">
+    <label for="did">DID (Public Number)</label>
+    <input type="text" id="did" name="did" class="form-control"
+           value="{{ trunk.did }}" placeholder="e.g. 0238290202 or +33238290202">
+    <small class="form-text">The public phone number associated with this trunk. Used as outbound caller ID.</small>
+  </div>
+
   <div id="registration-fields">
     <div id="auth-fields">
       <div class="form-row">

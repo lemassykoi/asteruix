@@ -8,7 +8,7 @@ from flask import Blueprint, jsonify, render_template, url_for
 
 from app.auth import login_required
 from app.db import get_db
-from app.generators import generate_inbound_flow, generate_timegroups
+from app.generators import generate_inbound_flow, generate_ring_groups, generate_timegroups
 
 dialplan_bp = Blueprint("dialplan", __name__)
 
@@ -68,6 +68,13 @@ def _build_graph() -> dict:
     mailbox_list = blast_row["mailbox_list"] if blast_row else "4900&4901&4902&4903&4904"
     vm_flags = blast_row["voicemail_flags"] if blast_row else "su"
 
+    # Check if open_target is a ring group
+    ring_group = None
+    if open_target:
+        ring_group = db.execute(
+            "SELECT * FROM ring_groups WHERE extension = ?", (open_target,)
+        ).fetchone()
+
     # Parse time rules for display
     time_rules = []
     if route and route["rules_json"]:
@@ -93,11 +100,42 @@ def _build_graph() -> dict:
          "detail": f"Goto(internal,{open_target},1)"},
         {"id": "closed", "label": "Closed", "type": "routing",
          "detail": f"Playback({closed_announcement})"},
-        {"id": "internal-ext", "label": f"Extension {open_target}", "type": "endpoint",
-         "detail": f"Ring ext {open_target}"},
+    ]
+
+    if ring_group:
+        rg_name = ring_group["name"]
+        rg_members = ring_group["members"]
+        rg_greeting = ring_group["greeting_announcement"]
+        rg_noanswer = ring_group["noanswer_announcement"]
+        rg_noanswer_action = ring_group["noanswer_action"]
+        nodes.append(
+            {"id": "ring-group", "label": f"Ring Group {open_target}",
+             "type": "endpoint",
+             "detail": f"{rg_name} — ring {rg_members} ({ring_group['strategy']}, {ring_group['ring_time']}s)"},
+        )
+        rg_failover_detail = rg_noanswer_action
+        if rg_noanswer_action == "vmblast":
+            rg_failover_detail = f"VM Blast ({mailbox_list})"
+        elif rg_noanswer_action == "voicemail":
+            rg_failover_detail = f"VoiceMail({ring_group['noanswer_target']})"
+        elif rg_noanswer_action == "extension":
+            rg_failover_detail = f"Goto ext {ring_group['noanswer_target']}"
+        nodes.append(
+            {"id": "rg-noanswer", "label": "No Answer",
+             "type": "blocked",
+             "detail": f"{'Playback(' + rg_noanswer + ') → ' if rg_noanswer else ''}{rg_failover_detail}"},
+        )
+    else:
+        nodes.append(
+            {"id": "internal-ext", "label": f"Extension {open_target}",
+             "type": "endpoint",
+             "detail": f"Ring ext {open_target}"},
+        )
+
+    nodes.append(
         {"id": "voicemail", "label": "Voicemail Blast", "type": "endpoint",
          "detail": f"VoiceMail({mailbox_list},{vm_flags})"},
-    ]
+    )
 
     edges = [
         {"from": "incoming", "to": "from-trunk", "label": ""},
@@ -108,9 +146,15 @@ def _build_graph() -> dict:
         {"from": "holiday-check", "to": "time-check", "label": "no match"},
         {"from": "time-check", "to": "open", "label": "in hours"},
         {"from": "time-check", "to": "closed", "label": "out of hours"},
-        {"from": "open", "to": "internal-ext", "label": ""},
-        {"from": "closed", "to": "voicemail", "label": "after announcement"},
     ]
+
+    if ring_group:
+        edges.append({"from": "open", "to": "ring-group", "label": ""})
+        edges.append({"from": "ring-group", "to": "rg-noanswer", "label": "no answer"})
+    else:
+        edges.append({"from": "open", "to": "internal-ext", "label": ""})
+
+    edges.append({"from": "closed", "to": "voicemail", "label": "after announcement"})
 
     config = {
         "open_target": open_target,
@@ -123,6 +167,7 @@ def _build_graph() -> dict:
         "fixed_holiday_family": fixed_hol,
         "variable_holiday_family": variable_hol,
         "time_rules": time_rules,
+        "ring_group": dict(ring_group) if ring_group else None,
     }
 
     return {"nodes": nodes, "edges": edges, "config": config}
@@ -145,7 +190,8 @@ def api_rendered():
     """Return the full generated dialplan text for all managed contexts."""
     tg_text = generate_timegroups()
     inbound_text = generate_inbound_flow()
-    combined = tg_text + "\n" + inbound_text
+    rg_text = generate_ring_groups()
+    combined = tg_text + "\n" + inbound_text + "\n" + rg_text
     return jsonify({"dialplan": combined})
 
 
@@ -156,6 +202,7 @@ def api_rendered():
 def _build_mermaid(graph: dict, urls: dict) -> str:
     """Build a Mermaid flowchart TD definition from the graph data."""
     cfg = graph["config"]
+    rg = cfg.get("ring_group")
     s = sanitize_mermaid_label
     lines = [
         "flowchart TD",
@@ -169,10 +216,34 @@ def _build_mermaid(graph: dict, urls: dict) -> str:
         '    timecheck{{"🕐 Time Check\\n%s"}}' % (s(cfg["time_group"]) or "⚠ No time group"),
         '    open["✅ Open\\nRoute to ext %s"]' % s(cfg["open_target"]),
         '    closed["🔴 Closed\\nPlayback %s"]' % s(cfg["closed_announcement"]),
-        '    ext["📱 Extension %s\\nGoto internal,%s,1"]'
-        % (s(cfg["open_target"]), s(cfg["open_target"])),
+    ]
+
+    if rg:
+        rg_members = s(rg["members"])
+        rg_name = s(rg["name"])
+        rg_strategy = s(rg["strategy"])
+        rg_greeting = s(rg.get("greeting_announcement", ""))
+        rg_noanswer = s(rg.get("noanswer_announcement", ""))
+        rg_detail = f"{rg_name}\\n{rg_strategy} — {rg_members}\\n{rg['ring_time']}s with MoH"
+        if rg_greeting:
+            rg_detail += f"\\nGreeting: {rg_greeting}"
+        lines.append('    ringgroup["🔔 Ring Group %s\\n%s"]' % (s(cfg["open_target"]), rg_detail))
+        noanswer_detail = rg.get("noanswer_action", "hangup")
+        if rg_noanswer:
+            noanswer_detail = f"Playback {rg_noanswer} → {noanswer_detail}"
+        lines.append('    rgnoanswer["⛔ No Answer\\n%s"]' % s(noanswer_detail))
+    else:
+        lines.append(
+            '    ext["📱 Extension %s\\nGoto internal,%s,1"]'
+            % (s(cfg["open_target"]), s(cfg["open_target"]))
+        )
+
+    lines.append(
         '    vm["📬 Voicemail Blast\\nVoiceMail %s,%s"]'
-        % (s(cfg["blast_mailboxes"]), s(cfg["voicemail_flags"])),
+        % (s(cfg["blast_mailboxes"]), s(cfg["voicemail_flags"]))
+    )
+
+    lines += [
         "",
         # -- Edges
         "    incoming --> fromtrunk",
@@ -183,8 +254,16 @@ def _build_mermaid(graph: dict, urls: dict) -> str:
         '    holcheck -- "no match" --> timecheck',
         '    timecheck -- "in hours" --> open',
         '    timecheck -- "out of hours" --> closed',
-        "    open --> ext",
-        '    closed -- "after announcement" --> vm',
+    ]
+
+    if rg:
+        lines.append("    open --> ringgroup")
+        lines.append('    ringgroup -- "no answer" --> rgnoanswer')
+    else:
+        lines.append("    open --> ext")
+
+    lines.append('    closed -- "after announcement" --> vm')
+    lines += [
         "",
         # -- Click links
         '    click spamcheck "%s" "Manage spam list"' % urls["spam"],
@@ -194,6 +273,8 @@ def _build_mermaid(graph: dict, urls: dict) -> str:
         '    click fromtrunk "%s" "Edit inbound route"' % urls["inbound"],
         '    click vm "%s" "Voicemail settings"' % urls["voicemail"],
     ]
+    if rg and urls.get("ringgroup"):
+        lines.append('    click ringgroup "%s" "Edit ring group"' % urls["ringgroup"])
     # Link time check to edit page if a time group is configured
     if urls.get("timegroup"):
         lines.append(
@@ -209,6 +290,7 @@ def _build_mermaid(graph: dict, urls: dict) -> str:
         "    classDef openNode fill:#d1e7dd,stroke:#198754,color:#0f5132",
         "    classDef closedNode fill:#fde8e8,stroke:#dc3545,color:#842029",
         "    classDef endpoint fill:#f0f6ff,stroke:#0d6efd,color:#0a4dbd",
+        "    classDef ringgroupNode fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20",
         "    classDef clickable cursor:pointer",
         "",
         "    class incoming entry",
@@ -217,8 +299,13 @@ def _build_mermaid(graph: dict, urls: dict) -> str:
         "    class blocked blockedNode",
         "    class open openNode",
         "    class closed closedNode",
-        "    class ext,vm endpoint",
     ]
+    if rg:
+        lines.append("    class ringgroup ringgroupNode")
+        lines.append("    class rgnoanswer blockedNode")
+    else:
+        lines.append("    class ext endpoint")
+    lines.append("    class vm endpoint")
     return "\n".join(lines)
 
 
@@ -230,7 +317,8 @@ def ui_view():
     cfg = graph["config"]
     tg_text = generate_timegroups()
     inbound_text = generate_inbound_flow()
-    combined = tg_text + "\n" + inbound_text
+    rg_text = generate_ring_groups()
+    combined = tg_text + "\n" + inbound_text + "\n" + rg_text
 
     urls = {
         "spam": url_for("spam.ui_list"),
@@ -240,6 +328,11 @@ def ui_view():
         "timegroup": (
             url_for("timegroups.ui_edit", tg_id=cfg["time_group_id"])
             if cfg.get("time_group_id")
+            else None
+        ),
+        "ringgroup": (
+            url_for("ringgroups.ui_edit", extension=cfg["open_target"])
+            if cfg.get("ring_group")
             else None
         ),
     }

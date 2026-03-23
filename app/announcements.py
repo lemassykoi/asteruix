@@ -246,6 +246,32 @@ def api_stream(ann_id):
 # UI routes
 # ---------------------------------------------------------------------------
 
+def _get_usage(db, key_name: str) -> list[str]:
+    """Return a list of human-readable places where this announcement is used."""
+    usages = []
+    # Inbound routes: closed announcement
+    for r in db.execute(
+        "SELECT name FROM inbound_routes WHERE closed_announcement = ?", (key_name,)
+    ).fetchall():
+        usages.append(f"Inbound \"{r['name']}\" (closed)")
+    # Ring groups: greeting
+    for r in db.execute(
+        "SELECT extension, name FROM ring_groups WHERE greeting_announcement = ?", (key_name,)
+    ).fetchall():
+        usages.append(f"Ring Group {r['extension']} \"{r['name']}\" (greeting)")
+    # Ring groups: no-answer
+    for r in db.execute(
+        "SELECT extension, name FROM ring_groups WHERE noanswer_announcement = ?", (key_name,)
+    ).fetchall():
+        usages.append(f"Ring Group {r['extension']} \"{r['name']}\" (no-answer)")
+    # IVR menus: greeting
+    for r in db.execute(
+        "SELECT name FROM ivr_menus WHERE greeting = ?", (key_name,)
+    ).fetchall():
+        usages.append(f"IVR \"{r['name']}\" (greeting)")
+    return usages
+
+
 @announcements_bp.route("/announcements")
 @login_required
 def ui_list():
@@ -257,6 +283,7 @@ def ui_list():
         filepath = os.path.join(ANNOUNCEMENTS_DIR, r["filename"])
         d["file_exists"] = os.path.exists(filepath)
         d["duration_sec"] = _get_duration(filepath) if d["file_exists"] else None
+        d["usages"] = _get_usage(db, r["key_name"])
         announcements.append(d)
     return render_template("announcements_list.html", announcements=announcements,
                            announcements_dir=ANNOUNCEMENTS_DIR)

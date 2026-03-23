@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}{{ "New Ring Group" if is_new else "Edit Ring Group " + group.extension }} — Asterisk WebUI{% endblock %}
+{% block content %}
+<h1>{{ "New Ring Group" if is_new else "Edit Ring Group " + group.extension }}</h1>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<form method="post" class="form-card">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  {% if is_new %}
+  <div class="form-group">
+    <label for="extension">Extension Number</label>
+    <input type="text" id="extension" name="extension" class="form-control"
+           value="{{ group.extension }}" required pattern="[0-9]{3,6}"
+           placeholder="e.g. 4910">
+    <small class="text-muted">Virtual extension number that callers will dial to reach this group.</small>
+  </div>
+  {% endif %}
+
+  <div class="form-group">
+    <label for="name">Group Name</label>
+    <input type="text" id="name" name="name" class="form-control"
+           value="{{ group.name }}" required placeholder="e.g. Front Office">
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label for="strategy">Ring Strategy</label>
+      <select id="strategy" name="strategy" class="form-control">
+        <option value="ringall" {{ "selected" if group.strategy == "ringall" }}>Ring All (simultaneous)</option>
+        <option value="hunt" {{ "selected" if group.strategy == "hunt" }}>Hunt (one by one)</option>
+        <option value="memoryhunt" {{ "selected" if group.strategy == "memoryhunt" }}>Memory Hunt (cumulative)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="ring_time">Ring Time (seconds)</label>
+      <input type="number" id="ring_time" name="ring_time" class="form-control"
+             value="{{ group.ring_time }}" min="10" max="120">
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="members">Members</label>
+    <input type="text" id="members" name="members" class="form-control"
+           value="{{ group.members }}" required
+           placeholder="e.g. 4901,4902,4903">
+    <small class="text-muted">Comma-separated extension numbers.
+      Available: {% for e in extensions %}{{ e.ext }} ({{ e.callerid_name }}){% if not loop.last %}, {% endif %}{% endfor %}
+    </small>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label for="greeting_announcement">Greeting Announcement</label>
+      <select id="greeting_announcement" name="greeting_announcement" class="form-control">
+        <option value="">— None —</option>
+        {% for a in announcements %}
+        <option value="{{ a.key_name }}" {{ "selected" if group.greeting_announcement == a.key_name }}>{{ a.key_name }}</option>
+        {% endfor %}
+      </select>
+      <small class="text-muted">Played to caller before ringing starts.</small>
+    </div>
+    <div class="form-group">
+      <label for="moh_class">Music on Hold Class</label>
+      <select id="moh_class" name="moh_class" class="form-control">
+        {% for m in moh_classes %}
+        <option value="{{ m.name }}" {{ "selected" if group.moh_class == m.name }}>{{ m.name }}</option>
+        {% endfor %}
+      </select>
+      <small class="text-muted">Played to caller while extensions are ringing.</small>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="noanswer_announcement">No-Answer Announcement</label>
+    <select id="noanswer_announcement" name="noanswer_announcement" class="form-control">
+      <option value="">— None —</option>
+      {% for a in announcements %}
+      <option value="{{ a.key_name }}" {{ "selected" if group.noanswer_announcement == a.key_name }}>{{ a.key_name }}</option>
+      {% endfor %}
+    </select>
+    <small class="text-muted">Played if nobody answers within the ring time.</small>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label for="noanswer_action">No-Answer Action</label>
+      <select id="noanswer_action" name="noanswer_action" class="form-control"
+              onchange="document.getElementById('noanswer_target_row').style.display=(['voicemail','extension'].includes(this.value))?'':'none'">
+        <option value="hangup" {{ "selected" if group.noanswer_action == "hangup" }}>Hangup</option>
+        <option value="vmblast" {{ "selected" if group.noanswer_action == "vmblast" }}>Voicemail Blast</option>
+        <option value="voicemail" {{ "selected" if group.noanswer_action == "voicemail" }}>Voicemail (single mailbox)</option>
+        <option value="extension" {{ "selected" if group.noanswer_action == "extension" }}>Forward to Extension</option>
+      </select>
+    </div>
+    <div class="form-group" id="noanswer_target_row"
+         style="{{ '' if group.noanswer_action in ('voicemail', 'extension') else 'display:none' }}">
+      <label for="noanswer_target">No-Answer Target</label>
+      <input type="text" id="noanswer_target" name="noanswer_target" class="form-control"
+             value="{{ group.noanswer_target }}"
+             placeholder="Mailbox or extension number">
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">
+      {{ "Create Ring Group" if is_new else "Save Changes" }}
+    </button>
+    <a href="{{ url_for('ringgroups.ui_list') }}" class="btn">Cancel</a>
+  </div>
+</form>
+{% endblock %}

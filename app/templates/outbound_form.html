@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}{{ "New Route" if is_new else "Edit " + route.name }} — Asterisk WebUI{% endblock %}
+{% block content %}
+<h1>{{ "New Outbound Route" if is_new else "Edit Route: " + route.name }}</h1>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<form method="post" class="form-card">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  {% if is_new %}
+  <div class="form-group">
+    <label for="name">Route Name</label>
+    <input type="text" id="name" name="name" class="form-control"
+           value="{{ route.name }}" required
+           placeholder="e.g. France fixe/VoIP">
+  </div>
+  {% endif %}
+
+  <div class="form-group">
+    <label for="pattern">Dial Pattern</label>
+    <input type="text" id="pattern" name="pattern" class="form-control"
+           value="{{ route.pattern }}" required
+           placeholder="e.g. _0[1-59]XXXXXXXX">
+    <small class="form-text">Asterisk dial pattern. Use <code>_</code> prefix for patterns, <code>X</code>=0-9, <code>Z</code>=1-9, <code>N</code>=2-9, <code>[...]</code>=ranges, <code>.</code>=wildcard.</small>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label for="trunk_name">Primary Trunk</label>
+      <select id="trunk_name" name="trunk_name" class="form-control" required>
+        <option value="">— Select trunk —</option>
+        {% for t in trunks %}
+        <option value="{{ t.name }}" {{ "selected" if route.trunk_name == t.name }}>
+          {{ t.name }}{% if t.did %} ({{ t.did }}){% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="failover_trunk">Failover Trunk</label>
+      <select id="failover_trunk" name="failover_trunk" class="form-control">
+        <option value="">— None —</option>
+        {% for t in trunks %}
+        <option value="{{ t.name }}" {{ "selected" if route.failover_trunk == t.name }}>
+          {{ t.name }}{% if t.did %} ({{ t.did }}){% endif %}
+        </option>
+        {% endfor %}
+      </select>
+      <small class="form-text">Used if the primary trunk is unavailable.</small>
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label for="priority">Priority</label>
+      <input type="number" id="priority" name="priority" class="form-control"
+             value="{{ route.priority }}" min="1" max="999" required>
+      <small class="form-text">Lower number = higher priority. Emergency routes should be 1-5.</small>
+    </div>
+    <div class="form-group" style="display:flex;align-items:end;padding-bottom:.5rem">
+      <label>
+        <input type="checkbox" name="enabled" {{ "checked" if route.enabled }}>
+        Enabled
+      </label>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">
+      {{ "Create Route" if is_new else "Save Changes" }}
+    </button>
+    <a href="{{ url_for('outbound.ui_list') }}" class="btn">Cancel</a>
+  </div>
+</form>
+
+<div class="card" style="margin-top:1.5rem">
+  <div class="card-header">Common French Dial Patterns</div>
+  <div class="card-body" style="font-size:.85rem">
+    <table class="table" style="margin:0">
+      <tr><td><code>_0[1-59]XXXXXXXX</code></td><td>France landline + VoIP (01-05, 09)</td></tr>
+      <tr><td><code>_06XXXXXXXX</code></td><td>Mobile (Orange/SFR/Bouygues)</td></tr>
+      <tr><td><code>_07XXXXXXXX</code></td><td>Mobile (Free/MVNO)</td></tr>
+      <tr><td><code>_1[578]</code></td><td>Emergency (15 SAMU, 17 Police, 18 Pompiers)</td></tr>
+      <tr><td><code>112</code></td><td>EU Emergency</td></tr>
+      <tr><td><code>_00X.</code></td><td>International</td></tr>
+    </table>
+  </div>
+</div>
+{% endblock %}

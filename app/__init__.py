@@ -54,9 +54,13 @@ def create_app():
     from app.spam import spam_bp
     from app.inbound import inbound_bp
     from app.conference import conference_bp
+    from app.ringgroups import ringgroups_bp
     from app.ivr import ivr_bp
+    from app.outbound import outbound_bp
     from app.dialplan import dialplan_bp
     from app.backups import backups_bp
+    from app.settings import settings_bp
+    from app.calllogs import calllogs_bp
     app.register_blueprint(core_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(system_bp)
@@ -70,8 +74,12 @@ def create_app():
     app.register_blueprint(spam_bp)
     app.register_blueprint(inbound_bp)
     app.register_blueprint(conference_bp)
+    app.register_blueprint(ringgroups_bp)
     app.register_blueprint(ivr_bp)
+    app.register_blueprint(outbound_bp)
     app.register_blueprint(dialplan_bp)
     app.register_blueprint(backups_bp)
+    app.register_blueprint(settings_bp)
+    app.register_blueprint(calllogs_bp)
 
     return app

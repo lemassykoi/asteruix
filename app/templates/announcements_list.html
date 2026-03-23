@@ -46,6 +46,7 @@
       <th>Duration</th>
       <th>Uploaded</th>
       <th>Status</th>
+      <th>Used by</th>
       <th>Actions</th>
     </tr>
   </thead>
@@ -67,6 +68,15 @@
           <span class="badge badge-off" title="File missing on disk">⚠ Missing</span>
         {% endif %}
       </td>
+      <td style="font-size:.85rem">
+        {% if a.usages %}
+          {% for u in a.usages %}
+            <span class="badge badge-ok">{{ u }}</span>
+          {% endfor %}
+        {% else %}
+          <span class="text-muted">—</span>
+        {% endif %}
+      </td>
       <td class="actions">
         {% if a.file_exists %}
         <a href="{{ url_for('announcements.ui_play', ann_id=a.id) }}"
@@ -77,7 +87,7 @@
               action="{{ url_for('announcements.ui_activate', ann_id=a.id) }}"
               style="display:inline">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn btn-sm btn-primary">Set Active</button>
+          <button type="submit" class="btn btn-sm btn-primary" title="Use as closed-hours announcement">Set Closed-Hours</button>
         </form>
         {% endif %}
         <form method="post"
@@ -90,7 +100,7 @@
     </tr>
     {% else %}
     <tr>
-      <td colspan="7" class="text-muted" style="text-align:center">No announcements configured.</td>
+      <td colspan="8" class="text-muted" style="text-align:center">No announcements configured.</td>
     </tr>
     {% endfor %}
   </tbody>
@@ -98,9 +108,11 @@
 
 <div class="card" style="margin-top:1rem">
   <div class="card-body" style="font-size:.85rem">
-    <strong>Note:</strong> The <em>active</em> announcement is used by <code>Playback()</code> in the closed-hours
-    dialplan flow. Only one announcement can be active at a time. Files are stored in
-    <code>{{ announcements_dir }}</code> as <code>.wav16</code> (16 kHz mono 16-bit).
+    <strong>Note:</strong> The <strong>Set Closed-Hours</strong> button selects which announcement is played during
+    closed-hours (inbound route closed flow). Only one can be active at a time.
+    Announcements can also be referenced by ring groups (greeting / no-answer) and IVR menus —
+    the "Used by" column shows where each announcement is currently in use.
+    Files are stored in <code>{{ announcements_dir }}</code> as <code>.wav16</code> (16 kHz mono 16-bit).
   </div>
 </div>
 {% endblock %}

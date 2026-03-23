@@ -21,10 +21,14 @@
       <li><a href="{{ url_for('holidays.ui_list') }}">Holidays</a></li>
       <li><a href="{{ url_for('spam.ui_list') }}">Spam</a></li>
       <li><a href="{{ url_for('inbound.ui_list') }}">Inbound</a></li>
+      <li><a href="{{ url_for('outbound.ui_list') }}">Outbound</a></li>
       <li><a href="{{ url_for('conference.ui_list') }}">Conference</a></li>
+      <li><a href="{{ url_for('ringgroups.ui_list') }}">Ring Groups</a></li>
       <li><a href="{{ url_for('ivr.ui_list') }}">IVR</a></li>
+      <li><a href="{{ url_for('calllogs.ui_list') }}">Call Logs</a></li>
       <li><a href="{{ url_for('dialplan.ui_view') }}">Dialplan</a></li>
       <li><a href="{{ url_for('backups.ui_list') }}">Backups</a></li>
+      <li><a href="{{ url_for('settings.ui_settings') }}">Settings</a></li>
     </ul>
     {% if session.get('username') %}
     <ul class="navbar-nav" style="margin-left:auto">

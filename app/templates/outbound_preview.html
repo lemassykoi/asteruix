@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Outbound Dialplan Preview — Asterisk WebUI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Generated Outbound Dialplan</h1>
+  <a href="{{ url_for('outbound.ui_list') }}" class="btn">← Back to Routes</a>
+</div>
+
+<div class="card">
+  <div class="card-header">extensions_outbound.conf</div>
+  <div class="card-body">
+    {% if dialplan %}
+    <pre style="white-space:pre-wrap;font-size:.85rem;line-height:1.5;margin:0"><code>{{ dialplan }}</code></pre>
+    {% else %}
+    <p class="text-muted">No outbound routes configured. The generated file will be empty.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

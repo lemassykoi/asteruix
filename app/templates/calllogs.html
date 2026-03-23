@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Call Logs — Asterisk WebUI{% endblock %}
+{% block container_class %}container-wide{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Call Logs</h1>
+  <div style="display:flex;align-items:center;gap:1rem">
+    <label style="display:flex;align-items:center;gap:.4rem;font-size:.9rem;cursor:pointer">
+      <input type="checkbox" id="hide-internal"
+             {% if hide_internal %}checked{% endif %}
+             onchange="location.href='{{ url_for('calllogs.ui_list') }}?hide_internal=' + (this.checked ? '1' : '0')">
+      Hide internal calls
+    </label>
+    <span class="text-muted">{{ total }} record{{ 's' if total != 1 }}</span>
+  </div>
+</div>
+
+{% if records %}
+<table class="table">
+  <thead>
+    <tr>
+      <th>Date / Time</th>
+      <th>Source</th>
+      <th>Destination</th>
+      <th>Caller ID</th>
+      <th>Channel</th>
+      <th>Duration</th>
+      <th>Disposition</th>
+      <th>Context</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in records %}
+    <tr>
+      <td style="white-space:nowrap">{{ r.start }}</td>
+      <td><code>{{ r.src }}</code></td>
+      <td><code>{{ r.dst }}</code></td>
+      <td>{{ r.clid }}</td>
+      <td style="font-size:.85em">{{ r.channel }}</td>
+      <td style="white-space:nowrap">{{ r.duration_fmt }}</td>
+      <td>
+        {% if r.disposition == 'ANSWERED' %}
+          <span class="badge badge-ok">ANSWERED</span>
+        {% elif r.disposition == 'NO ANSWER' %}
+          <span class="badge badge-off">NO ANSWER</span>
+        {% elif r.disposition == 'BUSY' %}
+          <span class="badge" style="background:#fff3cd;color:#664d03">BUSY</span>
+        {% elif r.disposition == 'FAILED' %}
+          <span class="badge" style="background:#f8d7da;color:#842029">FAILED</span>
+        {% else %}
+          <span class="badge badge-off">{{ r.disposition }}</span>
+        {% endif %}
+      </td>
+      <td><code>{{ r.dcontext }}</code></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if total_pages > 1 %}
+<div class="pagination">
+  {% if page > 1 %}
+    <a href="{{ url_for('calllogs.ui_list', page=1, hide_internal='1' if hide_internal else '0') }}" class="btn btn-sm btn-page">« First</a>
+    <a href="{{ url_for('calllogs.ui_list', page=page-1, hide_internal='1' if hide_internal else '0') }}" class="btn btn-sm btn-page">‹ Prev</a>
+  {% endif %}
+  <span class="page-info">Page {{ page }} / {{ total_pages }}</span>
+  {% if page < total_pages %}
+    <a href="{{ url_for('calllogs.ui_list', page=page+1, hide_internal='1' if hide_internal else '0') }}" class="btn btn-sm btn-page">Next ›</a>
+    <a href="{{ url_for('calllogs.ui_list', page=total_pages, hide_internal='1' if hide_internal else '0') }}" class="btn btn-sm btn-page">Last »</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<p class="text-muted" style="margin-top:2rem">No call records found.</p>
+{% endif %}
+{% endblock %}

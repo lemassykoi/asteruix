@@ -94,8 +94,9 @@ def api_create():
 
     db.execute(
         "INSERT INTO trunks (name, type, host, username, password, from_domain, "
-        "contact_uri, identify_match, registration_client_uri, registration_server_uri, enabled) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "contact_uri, identify_match, registration_client_uri, registration_server_uri, "
+        "enabled, did) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             name,
             data.get("type", "registration"),
@@ -108,6 +109,7 @@ def api_create():
             data.get("registration_client_uri", "").strip(),
             data.get("registration_server_uri", "").strip(),
             int(data.get("enabled", 1)),
+            data.get("did", "").strip(),
         ),
     )
     db.commit()
@@ -159,7 +161,7 @@ def api_update(name):
     db.execute(
         "UPDATE trunks SET type=?, host=?, username=?, password=?, from_domain=?, "
         "contact_uri=?, identify_match=?, registration_client_uri=?, "
-        "registration_server_uri=?, enabled=? WHERE name=?",
+        "registration_server_uri=?, enabled=?, did=? WHERE name=?",
         (
             data.get("type", existing["type"]),
             data.get("host", existing["host"]).strip(),
@@ -171,6 +173,7 @@ def api_update(name):
             data.get("registration_client_uri", existing["registration_client_uri"]).strip(),
             data.get("registration_server_uri", existing["registration_server_uri"]).strip(),
             int(data.get("enabled", existing["enabled"])),
+            data.get("did", existing["did"]).strip(),
             name,
         ),
     )
@@ -267,6 +270,7 @@ def ui_new():
             "registration_client_uri": request.form.get("registration_client_uri", "").strip(),
             "registration_server_uri": request.form.get("registration_server_uri", "").strip(),
             "enabled": 1 if request.form.get("enabled") else 0,
+            "did": request.form.get("did", "").strip(),
         }
         errors = _validate_trunk(data, is_new=True)
         db = get_db()
@@ -280,13 +284,14 @@ def ui_new():
 
         db.execute(
             "INSERT INTO trunks (name, type, host, username, password, from_domain, "
-            "contact_uri, identify_match, registration_client_uri, registration_server_uri, enabled) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "contact_uri, identify_match, registration_client_uri, registration_server_uri, "
+            "enabled, did) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 data["name"], data["type"], data["host"], data["username"],
                 data["password"], data["from_domain"], data["contact_uri"],
                 data["identify_match"], data["registration_client_uri"],
-                data["registration_server_uri"], data["enabled"],
+                data["registration_server_uri"], data["enabled"], data["did"],
             ),
         )
         db.commit()
@@ -304,7 +309,7 @@ def ui_new():
         "name": "", "type": "registration", "host": "", "username": "",
         "password": "", "from_domain": "", "contact_uri": "",
         "identify_match": "", "registration_client_uri": "",
-        "registration_server_uri": "", "enabled": 1,
+        "registration_server_uri": "", "enabled": 1, "did": "",
     }
     return render_template("trunks_form.html", trunk=defaults, is_new=True)
 
@@ -331,6 +336,7 @@ def ui_edit(trunk_name):
             "registration_client_uri": request.form.get("registration_client_uri", "").strip(),
             "registration_server_uri": request.form.get("registration_server_uri", "").strip(),
             "enabled": 1 if request.form.get("enabled") else 0,
+            "did": request.form.get("did", "").strip(),
         }
         errors = _validate_trunk(data, is_new=False)
         if errors:
@@ -342,12 +348,12 @@ def ui_edit(trunk_name):
         db.execute(
             "UPDATE trunks SET type=?, host=?, username=?, password=?, from_domain=?, "
             "contact_uri=?, identify_match=?, registration_client_uri=?, "
-            "registration_server_uri=?, enabled=? WHERE name=?",
+            "registration_server_uri=?, enabled=?, did=? WHERE name=?",
             (
                 data["type"], data["host"], data["username"], data["password"],
                 data["from_domain"], data["contact_uri"], data["identify_match"],
                 data["registration_client_uri"], data["registration_server_uri"],
-                data["enabled"], trunk_name,
+                data["enabled"], data["did"], trunk_name,
             ),
         )
         db.commit()

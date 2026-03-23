@@ -12,6 +12,16 @@ from app.db import get_db
 WEBUI_CONF_DIR = "/etc/asterisk/webui"
 
 
+def _vm_blast_arg(mailbox_list: str, context: str = "default") -> str:
+    """Format a mailbox list for VoiceMail() with per-mailbox context.
+
+    Asterisk VoiceMail() requires each mailbox to have its own @context,
+    e.g. ``4901@default&4902@default`` — NOT ``4901&4902@default``.
+    """
+    boxes = [m.strip() for m in mailbox_list.split("&") if m.strip()]
+    return "&".join(f"{b}@{context}" for b in boxes)
+
+
 def _atomic_write(path: str, content: str):
     """Write content to *path* atomically via temp file + rename.
 
@@ -112,7 +122,7 @@ def generate_voicemail_boxes() -> str:
 
     for r in rows:
         # Format: mailbox => pin,name,email,pager,options
-        options_parts = []
+        options_parts = ["tz=europe-paris"]
         if r["attach"]:
             options_parts.append("attach=yes")
         if r["delete_after_email"]:
@@ -449,12 +459,41 @@ def generate_inbound_flow() -> str:
         mailbox_list = _scv(blast_row["mailbox_list"]) or mailbox_list
         vm_flags = _scv(blast_row["voicemail_flags"]) or vm_flags
 
+    # Telegram notification settings
+    tg_enabled = False
+    try:
+        tg_row = db.execute(
+            "SELECT key, value FROM settings WHERE key IN "
+            "('telegram_enabled', 'telegram_bot_token', 'telegram_chat_id')"
+        ).fetchall()
+        tg_settings = {r["key"]: r["value"] for r in tg_row}
+        if (tg_settings.get("telegram_enabled") == "1"
+                and tg_settings.get("telegram_bot_token")
+                and tg_settings.get("telegram_chat_id")):
+            tg_enabled = True
+            tg_token = tg_settings["telegram_bot_token"]
+            if tg_token.startswith("bot"):
+                tg_token = tg_token[3:]
+            tg_chat_id = tg_settings["telegram_chat_id"]
+    except Exception:
+        pass
+
     lines.append("[closed]")
     lines.append("exten => s,1,NoOp(Office CLOSED — announcement + voicemail)")
     lines.append(" same => n,Answer()")
     lines.append(" same => n,Set(CHANNEL(language)=fr)")
+    if tg_enabled:
+        tg_url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
+        lines.append(f" same => n,Set(TG_TEXT=Appel manqué de ${{CHANNEL(endpoint)}}: ${{CALLERID(number)}})")
+        lines.append(f" same => n,TrySystem(curl -s -F chat_id={tg_chat_id} -F text='${{TG_TEXT}}' {tg_url})")
     lines.append(f" same => n,Playback({closed_announcement})")
-    lines.append(f" same => n,VoiceMail({mailbox_list}@default,{vm_flags})")
+    # In the closed context we already played the announcement, so skip
+    # the per-mailbox unavailable/busy greeting — just beep and record.
+    # Strip 'u' and 'b' flags, keep 's' (skip instructions).
+    closed_vm_flags = "".join(c for c in vm_flags if c not in "ub") or "s"
+    if "s" not in closed_vm_flags:
+        closed_vm_flags = "s" + closed_vm_flags
+    lines.append(f" same => n,VoiceMail({_vm_blast_arg(mailbox_list)},{closed_vm_flags})")
     lines.append(" same => n,Hangup()")
     lines.append("")
 
@@ -512,6 +551,113 @@ def write_confbridge_profiles():
     """Generate and atomically write the managed ConfBridge profiles file."""
     content = generate_confbridge_profiles()
     _atomic_write(os.path.join(WEBUI_CONF_DIR, "confbridge_profiles.conf"), content)
+    return content
+
+
+def generate_ring_groups() -> str:
+    """Render ring group dialplan entries in the [internal] context.
+
+    Each ring group produces an exact-match extension in [internal] that
+    takes priority over the pattern-match ``_490[0-4]``.  Supports three
+    strategies: ringall (simultaneous), hunt (sequential), memoryhunt
+    (cumulative).
+    """
+    db = get_db()
+    rows = db.execute("SELECT * FROM ring_groups ORDER BY extension").fetchall()
+
+    lines = [
+        "; ---- WebUI-managed Ring Groups ----",
+        "; Auto-generated — do not edit manually",
+        "",
+    ]
+
+    if not rows:
+        return "\n".join(lines)
+
+    lines.append("[internal]")
+    lines.append("")
+
+    for r in rows:
+        ext = _scv(r["extension"])
+        name = _scv(r["name"])
+        strategy = _scv(r["strategy"]) or "ringall"
+        members_raw = _scv(r["members"])
+        ring_time = r["ring_time"] or 30
+        greeting = _scv(r["greeting_announcement"])
+        moh = _scv(r["moh_class"]) or "default"
+        noanswer_ann = _scv(r["noanswer_announcement"])
+        noanswer_action = _scv(r["noanswer_action"]) or "hangup"
+        noanswer_target = _scv(r["noanswer_target"])
+
+        member_list = [m.strip() for m in members_raw.split(",") if m.strip()]
+
+        lines.append(f"; --- Ring Group: {name} ({ext}) ---")
+        lines.append(f"exten => {ext},1,NoOp(Ring group: {name})")
+        lines.append(f" same => n,Answer()")
+        lines.append(f" same => n,Set(CHANNEL(language)=fr)")
+
+        if greeting:
+            lines.append(f" same => n,Playback({greeting})")
+
+        dial_opts = f"tTrm({moh})"
+
+        if strategy == "ringall":
+            dial_str = "&".join(f"PJSIP/{m}" for m in member_list)
+            lines.append(f" same => n,Dial({dial_str},{ring_time},{dial_opts})")
+        elif strategy == "hunt":
+            for m in member_list:
+                lines.append(f" same => n,Dial(PJSIP/{m},{ring_time},{dial_opts})")
+        elif strategy == "memoryhunt":
+            for i in range(len(member_list)):
+                dial_str = "&".join(f"PJSIP/{m}" for m in member_list[: i + 1])
+                lines.append(f" same => n,Dial({dial_str},{ring_time},{dial_opts})")
+
+        if noanswer_ann:
+            lines.append(f" same => n,Playback({noanswer_ann})")
+
+        if noanswer_action == "vmblast":
+            blast_row = db.execute(
+                "SELECT * FROM blast_config ORDER BY id LIMIT 1"
+            ).fetchone()
+            mailbox_list = _scv(blast_row["mailbox_list"]) if blast_row else "&".join(member_list)
+            vm_flags = _scv(blast_row["voicemail_flags"]) if blast_row else "su"
+            # Telegram notification before voicemail
+            tg_en = False
+            try:
+                tg_r = db.execute(
+                    "SELECT key, value FROM settings WHERE key IN "
+                    "('telegram_enabled', 'telegram_bot_token', 'telegram_chat_id')"
+                ).fetchall()
+                tg_s = {r["key"]: r["value"] for r in tg_r}
+                if (tg_s.get("telegram_enabled") == "1"
+                        and tg_s.get("telegram_bot_token")
+                        and tg_s.get("telegram_chat_id")):
+                    tg_en = True
+            except Exception:
+                pass
+            if tg_en:
+                rg_tg_token = tg_s['telegram_bot_token']
+                if rg_tg_token.startswith("bot"):
+                    rg_tg_token = rg_tg_token[3:]
+                tg_url = f"https://api.telegram.org/bot{rg_tg_token}/sendMessage"
+                lines.append(f" same => n,Set(TG_TEXT=Appel manqué de ${{CHANNEL(endpoint)}}: ${{CALLERID(number)}})")
+                lines.append(f" same => n,TrySystem(curl -s -F chat_id={tg_s['telegram_chat_id']} -F text='${{TG_TEXT}}' {tg_url})")
+            lines.append(f" same => n,VoiceMail({_vm_blast_arg(mailbox_list)},{vm_flags})")
+        elif noanswer_action == "voicemail" and noanswer_target:
+            lines.append(f" same => n,VoiceMail({noanswer_target}@default,u)")
+        elif noanswer_action == "extension" and noanswer_target:
+            lines.append(f" same => n,Goto(internal,{noanswer_target},1)")
+
+        lines.append(" same => n,Hangup()")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+def write_ring_groups():
+    """Generate and atomically write the managed ring groups dialplan file."""
+    content = generate_ring_groups()
+    _atomic_write(os.path.join(WEBUI_CONF_DIR, "extensions_ringgroups.conf"), content)
     return content
 
 
@@ -602,4 +748,65 @@ def write_ivr_menus():
     """Generate and atomically write the managed IVR menus dialplan file."""
     content = generate_ivr_menus()
     _atomic_write(os.path.join(WEBUI_CONF_DIR, "extensions_ivr.conf"), content)
+    return content
+
+
+def generate_outbound_routes() -> str:
+    """Render the [outbound] context with dial patterns from outbound_routes table.
+
+    Each enabled route generates an extension pattern that dials via the
+    selected trunk.  If a failover trunk is configured, a CHANUNAVAIL
+    check retries on the failover.  Caller ID is set from the trunk DID.
+    """
+    db = get_db()
+    rows = db.execute(
+        "SELECT r.*, t.did AS trunk_did, f.did AS failover_did "
+        "FROM outbound_routes r "
+        "JOIN trunks t ON r.trunk_name = t.name "
+        "LEFT JOIN trunks f ON r.failover_trunk = f.name "
+        "WHERE r.enabled = 1 "
+        "ORDER BY r.priority, r.id"
+    ).fetchall()
+
+    lines = [
+        "; ---- WebUI-managed Outbound Routes ----",
+        "; Auto-generated — do not edit manually",
+        "",
+        "[outbound]",
+        "",
+    ]
+
+    for r in rows:
+        pattern = _scv(r["pattern"])
+        trunk = _scv(r["trunk_name"])
+        trunk_did = _scv(r["trunk_did"])
+        failover = _scv(r["failover_trunk"])
+        failover_did = _scv(r["failover_did"]) if r["failover_did"] else ""
+        name = _scv(r["name"])
+
+        lines.append(f"; --- {name} (priority {r['priority']}) ---")
+        lines.append(f"exten => {pattern},1,NoOp(Outbound: ${{EXTEN}} via {trunk})")
+        if trunk_did:
+            lines.append(f" same => n,Set(CALLERID(num)={trunk_did})")
+        if failover:
+            lines.append(f" same => n,Dial(PJSIP/${{EXTEN}}@{trunk},60,tT)")
+            lines.append(' same => n,GotoIf($["${DIALSTATUS}"="CHANUNAVAIL"]?failover)')
+            lines.append(" same => n,Hangup()")
+            lines.append(f" same => n(failover),NoOp(Failover to {failover})")
+            if failover_did and failover_did != trunk_did:
+                lines.append(f" same => n,Set(CALLERID(num)={failover_did})")
+            lines.append(f" same => n,Dial(PJSIP/${{EXTEN}}@{failover},60,tT)")
+            lines.append(" same => n,Hangup()")
+        else:
+            lines.append(f" same => n,Dial(PJSIP/${{EXTEN}}@{trunk},60,tT)")
+            lines.append(" same => n,Hangup()")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+def write_outbound_routes():
+    """Generate and atomically write the managed outbound routes dialplan file."""
+    content = generate_outbound_routes()
+    _atomic_write(os.path.join(WEBUI_CONF_DIR, "extensions_outbound.conf"), content)
     return content

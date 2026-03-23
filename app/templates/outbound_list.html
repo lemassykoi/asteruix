@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Outbound Routes — Asterisk WebUI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Outbound Routes</h1>
+  <div>
+    <a href="{{ url_for('outbound.ui_preview') }}" class="btn btn-sm">Preview Dialplan</a>
+    <a href="{{ url_for('outbound.ui_new') }}" class="btn btn-primary">+ New Route</a>
+  </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<p class="text-muted" style="margin-bottom:1rem;font-size:.85rem">
+  Outbound routes define which dial patterns are allowed from internal extensions and which trunk carries the call.
+  Patterns not listed here are blocked (whitelist approach). Routes are evaluated by priority (lowest first).
+</p>
+
+{% if routes %}
+<table class="table">
+  <thead>
+    <tr>
+      <th>Priority</th>
+      <th>Name</th>
+      <th>Pattern</th>
+      <th>Trunk</th>
+      <th>Failover</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in routes %}
+    <tr{% if not r.enabled %} style="opacity:.5"{% endif %}>
+      <td>{{ r.priority }}</td>
+      <td>{{ r.name }}</td>
+      <td><code>{{ r.pattern }}</code></td>
+      <td>{{ r.trunk_name }}{% if r.trunk_did %} <small class="text-muted">({{ r.trunk_did }})</small>{% endif %}</td>
+      <td>{% if r.failover_trunk %}{{ r.failover_trunk }}{% if r.failover_did %} <small class="text-muted">({{ r.failover_did }})</small>{% endif %}{% else %}—{% endif %}</td>
+      <td>
+        <form method="post" action="{{ url_for('outbound.ui_toggle', route_id=r.id) }}" style="display:inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="badge {{ 'badge-ok' if r.enabled else 'badge-off' }}" style="cursor:pointer;border:none">
+            {{ "Enabled" if r.enabled else "Disabled" }}
+          </button>
+        </form>
+      </td>
+      <td>
+        <a href="{{ url_for('outbound.ui_edit', route_id=r.id) }}" class="btn btn-sm">Edit</a>
+        <form method="post" action="{{ url_for('outbound.ui_delete', route_id=r.id) }}"
+              style="display:inline" onsubmit="return confirm('Delete route \'{{ r.name }}\'?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="card">
+  <div class="card-body" style="text-align:center">
+    <p class="text-muted">No outbound routes configured.</p>
+    <p class="text-muted" style="font-size:.85rem">All outbound calls from internal extensions will be blocked until routes are added.</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

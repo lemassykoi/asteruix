@@ -380,4 +380,28 @@ code {
   font-size: .8rem;
 }
 
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin: 1rem 0 2rem;
+}
+
+.page-info {
+  font-size: .9rem;
+  color: #6c757d;
+  margin: 0 .5rem;
+}
+
+.btn-page {
+  background: #e9ecef;
+  color: #212529;
+  text-decoration: none;
+}
+
+.btn-page:hover {
+  background: #dee2e6;
+}
+
 

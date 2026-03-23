@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Ring Groups — Asterisk WebUI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Ring Groups</h1>
+  <a href="{{ url_for('ringgroups.ui_new') }}" class="btn btn-primary">+ New Ring Group</a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Extension</th>
+      <th>Name</th>
+      <th>Strategy</th>
+      <th>Members</th>
+      <th>Ring Time</th>
+      <th>MoH</th>
+      <th>Failover</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for g in groups %}
+    <tr>
+      <td><strong>{{ g.extension }}</strong></td>
+      <td>{{ g.name }}</td>
+      <td><code>{{ g.strategy }}</code></td>
+      <td>{{ g.members }}</td>
+      <td>{{ g.ring_time }}s</td>
+      <td>{{ g.moh_class }}</td>
+      <td>
+        {% if g.noanswer_announcement %}Announce → {% endif %}
+        {% if g.noanswer_action == 'hangup' %}
+          Hangup
+        {% elif g.noanswer_action == 'vmblast' %}
+          VM Blast
+        {% elif g.noanswer_action == 'voicemail' %}
+          Voicemail ({{ g.noanswer_target }})
+        {% elif g.noanswer_action == 'extension' %}
+          Ext {{ g.noanswer_target }}
+        {% endif %}
+      </td>
+      <td class="actions">
+        <a href="{{ url_for('ringgroups.ui_edit', extension=g.extension) }}" class="btn btn-sm">Edit</a>
+        <form method="post" action="{{ url_for('ringgroups.ui_delete', extension=g.extension) }}"
+              style="display:inline" onsubmit="return confirm('Delete ring group {{ g.extension }}?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="8" class="text-muted" style="text-align:center">No ring groups configured.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -7,7 +7,7 @@ from flask import g, current_app
 
 DB_PATH = os.environ.get("WEBUI_DB_PATH", "/var/lib/asterisk-webui/webui.db")
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 7
 
 SCHEMA_SQL = """\
 -- Schema version tracking
@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS trunks (
     name                    TEXT PRIMARY KEY,
     type                    TEXT NOT NULL DEFAULT 'registration',
     host                    TEXT NOT NULL DEFAULT '',
+    did                     TEXT NOT NULL DEFAULT '',
     username                TEXT NOT NULL DEFAULT '',
     password                TEXT NOT NULL DEFAULT '',
     from_domain             TEXT NOT NULL DEFAULT '',
@@ -42,7 +43,8 @@ CREATE TABLE IF NOT EXISTS trunks (
     identify_match          TEXT NOT NULL DEFAULT '',
     registration_client_uri TEXT NOT NULL DEFAULT '',
     registration_server_uri TEXT NOT NULL DEFAULT '',
-    enabled                 INTEGER NOT NULL DEFAULT 1
+    enabled                 INTEGER NOT NULL DEFAULT 1,
+    did                     TEXT NOT NULL DEFAULT ''
 );
 
 -- Voicemail boxes
@@ -143,6 +145,20 @@ CREATE TABLE IF NOT EXISTS audit_log (
 CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit_log(ts);
 CREATE INDEX IF NOT EXISTS idx_audit_target ON audit_log(target);
 
+-- Ring Groups
+CREATE TABLE IF NOT EXISTS ring_groups (
+    extension               TEXT PRIMARY KEY,
+    name                    TEXT NOT NULL,
+    strategy                TEXT NOT NULL DEFAULT 'ringall',
+    members                 TEXT NOT NULL,
+    ring_time               INTEGER NOT NULL DEFAULT 30,
+    greeting_announcement   TEXT NOT NULL DEFAULT '',
+    moh_class               TEXT NOT NULL DEFAULT 'default',
+    noanswer_announcement   TEXT NOT NULL DEFAULT '',
+    noanswer_action         TEXT NOT NULL DEFAULT 'hangup',
+    noanswer_target         TEXT NOT NULL DEFAULT ''
+);
+
 -- IVR Menus
 CREATE TABLE IF NOT EXISTS ivr_menus (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -151,6 +167,23 @@ CREATE TABLE IF NOT EXISTS ivr_menus (
     timeout             INTEGER NOT NULL DEFAULT 5,
     invalid_retries     INTEGER NOT NULL DEFAULT 3,
     options_json        TEXT NOT NULL DEFAULT '[]'
+);
+
+-- Settings (key-value)
+CREATE TABLE IF NOT EXISTS settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL DEFAULT ''
+);
+
+-- Outbound routes
+CREATE TABLE IF NOT EXISTS outbound_routes (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    name            TEXT NOT NULL UNIQUE,
+    pattern         TEXT NOT NULL,
+    trunk_name      TEXT NOT NULL REFERENCES trunks(name),
+    failover_trunk  TEXT DEFAULT '' REFERENCES trunks(name),
+    priority        INTEGER NOT NULL DEFAULT 10,
+    enabled         INTEGER NOT NULL DEFAULT 1
 );
 """
 
@@ -199,6 +232,16 @@ def init_db():
         # Migration v3 → v4: add context column to extensions
         if current < 4:
             _migrate_to_v4(conn)
+
+        # Migration v4 → v5: ring_groups table (created by SCHEMA_SQL above)
+
+        # Migration v5 → v6: add settings table + seed defaults
+        if current < 6:
+            _migrate_to_v6(conn)
+
+        # Migration v6 → v7: add did column to trunks + outbound_routes table
+        if current < 7:
+            _migrate_to_v7(conn)
 
         conn.execute(
             "INSERT INTO schema_version (version) VALUES (?)", (SCHEMA_VERSION,)
@@ -276,6 +319,66 @@ def _migrate_to_v4(conn: sqlite3.Connection):
         )
     except sqlite3.OperationalError:
         pass  # Column already exists
+
+
+def _migrate_to_v6(conn: sqlite3.Connection):
+    """Add settings table and seed default values."""
+    defaults = [
+        ("telegram_enabled", "0"),
+        ("telegram_bot_token", ""),
+        ("telegram_chat_id", ""),
+        ("pbx_name", "Asterisk SOHO PBX"),
+        ("default_language", "fr"),
+        ("timezone", "Europe/Paris"),
+        ("smtp_host", ""),
+        ("smtp_port", "587"),
+        ("smtp_username", ""),
+        ("smtp_password", ""),
+        ("smtp_from", ""),
+        ("smtp_tls", "1"),
+    ]
+    for key, value in defaults:
+        conn.execute(
+            "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)",
+            (key, value),
+        )
+
+
+def _migrate_to_v7(conn: sqlite3.Connection):
+    """Add did column to trunks and create outbound_routes table."""
+    try:
+        conn.execute(
+            "ALTER TABLE trunks ADD COLUMN did TEXT NOT NULL DEFAULT ''"
+        )
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS outbound_routes (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            name            TEXT NOT NULL UNIQUE,
+            pattern         TEXT NOT NULL,
+            trunk_name      TEXT NOT NULL REFERENCES trunks(name),
+            failover_trunk  TEXT DEFAULT '' REFERENCES trunks(name),
+            priority        INTEGER NOT NULL DEFAULT 10,
+            enabled         INTEGER NOT NULL DEFAULT 1
+        )
+    """)
+
+    # Seed default outbound routes if table is empty
+    count = conn.execute("SELECT COUNT(*) FROM outbound_routes").fetchone()[0]
+    if count == 0:
+        defaults = [
+            ("Urgences", "_1[578]", "OVH_IPC", "OVH_IPA", 1, 1),
+            ("Urgences 112", "112", "OVH_IPC", "OVH_IPA", 2, 1),
+            ("France fixe/VoIP", "_0[1-59]XXXXXXXX", "OVH_IPC", "OVH_IPA", 10, 1),
+        ]
+        for name, pattern, trunk, failover, priority, enabled in defaults:
+            conn.execute(
+                "INSERT INTO outbound_routes (name, pattern, trunk_name, failover_trunk, priority, enabled) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (name, pattern, trunk, failover, priority, enabled),
+            )
 
 
 def register_db(app):
