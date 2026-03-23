@@ -11,6 +11,7 @@
   <nav class="navbar">
     <div class="navbar-brand">Asterisk WebUI</div>
     <ul class="navbar-nav">
+      <li><a href="{{ url_for('system.dashboard') }}">Dashboard</a></li>
       <li class="nav-dropdown">
         <span class="nav-dropdown-toggle" tabindex="0">Telephony ▾</span>
         <ul class="nav-dropdown-menu">
@@ -42,7 +43,6 @@
       <li class="nav-dropdown">
         <span class="nav-dropdown-toggle" tabindex="0">System ▾</span>
         <ul class="nav-dropdown-menu">
-          <li><a href="{{ url_for('system.dashboard') }}">Dashboard</a></li>
           <li><a href="{{ url_for('calllogs.ui_list') }}">Call Logs</a></li>
           <li><a href="{{ url_for('dialplan.ui_view') }}">Dialplan</a></li>
           <li><a href="{{ url_for('backups.ui_list') }}">Backups</a></li>
