@@ -43,8 +43,7 @@ CREATE TABLE IF NOT EXISTS trunks (
     identify_match          TEXT NOT NULL DEFAULT '',
     registration_client_uri TEXT NOT NULL DEFAULT '',
     registration_server_uri TEXT NOT NULL DEFAULT '',
-    enabled                 INTEGER NOT NULL DEFAULT 1,
-    did                     TEXT NOT NULL DEFAULT ''
+    enabled                 INTEGER NOT NULL DEFAULT 1
 );
 
 -- Voicemail boxes
@@ -365,9 +364,12 @@ def _migrate_to_v7(conn: sqlite3.Connection):
         )
     """)
 
-    # Seed default outbound routes if table is empty
+    # Seed default outbound routes if table is empty and referenced trunks exist
     count = conn.execute("SELECT COUNT(*) FROM outbound_routes").fetchone()[0]
-    if count == 0:
+    trunk_exists = conn.execute(
+        "SELECT COUNT(*) FROM trunks WHERE name IN ('OVH_IPC', 'OVH_IPA')"
+    ).fetchone()[0]
+    if count == 0 and trunk_exists == 2:
         defaults = [
             ("Urgences", "_1[578]", "OVH_IPC", "OVH_IPA", 1, 1),
             ("Urgences 112", "112", "OVH_IPC", "OVH_IPA", 2, 1),

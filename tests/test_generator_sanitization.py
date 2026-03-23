@@ -12,13 +12,18 @@ def app(tmp_path):
     """Create a test app with an in-memory-like temp DB."""
     db_path = str(tmp_path / "test.db")
     import os
+    import app.db as db_module
     os.environ["WEBUI_DB_PATH"] = db_path
     os.environ["WEBUI_INSECURE_COOKIES"] = "1"
+    # Patch the module-level DB_PATH so both init_db() and get_db() use the temp DB
+    original_db_path = db_module.DB_PATH
+    db_module.DB_PATH = db_path
 
     application = create_app()
     application.config["TESTING"] = True
     yield application
 
+    db_module.DB_PATH = original_db_path
     os.environ.pop("WEBUI_DB_PATH", None)
     os.environ.pop("WEBUI_INSECURE_COOKIES", None)
 
