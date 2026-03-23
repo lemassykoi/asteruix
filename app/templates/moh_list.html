@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Music on Hold — Asterisk WebUI{% endblock %}
+{% block container_class %}container-wide{% endblock %}
 {% block content %}
 <div class="page-header">
   <h1>Music on Hold</h1>
@@ -35,8 +36,8 @@
           <td>{{ "%.1f s"|format(t.duration_sec) if t.duration_sec else "—" }}</td>
           <td>{{ t.uploaded_at }}</td>
           <td class="actions">
-            <a href="{{ url_for('moh.ui_play_track', class_name=item.cls.name, track_id=t.id) }}"
-               class="btn btn-sm" target="_blank">Play</a>
+            <audio controls preload="none" class="inline-player"
+                   src="{{ url_for('moh.ui_play_track', class_name=item.cls.name, track_id=t.id) }}"></audio>
             <form method="post"
                   action="{{ url_for('moh.ui_delete_track', class_name=item.cls.name, track_id=t.id) }}"
                   style="display:inline" onsubmit="return confirm('Delete track {{ t.filename }}?')">

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Mailbox {{ mailbox }} — Asterisk WebUI{% endblock %}
+{% block container_class %}container-wide{% endblock %}
 {% block content %}
 <div class="page-header">
   <h1>Mailbox {{ mailbox }} — {{ box.name }}</h1>
@@ -44,8 +45,8 @@
       <td>{{ "%d s"|format(m.duration) if m.duration is not none else "—" }}</td>
       <td class="actions">
         {% if m.audio_file %}
-        <a href="{{ url_for('voicemail.ui_play_message', mailbox=mailbox, msg_id=m.msg_id, folder=folder) }}"
-           class="btn btn-sm" target="_blank">Play</a>
+        <audio controls preload="none" class="inline-player"
+               src="{{ url_for('voicemail.ui_play_message', mailbox=mailbox, msg_id=m.msg_id, folder=folder) }}"></audio>
         {% endif %}
         <form method="post"
               action="{{ url_for('voicemail.ui_delete_message', mailbox=mailbox, msg_id=m.msg_id) }}"

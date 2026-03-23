@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Announcements — Asterisk WebUI{% endblock %}
+{% block container_class %}container-wide{% endblock %}
 {% block content %}
 <div class="page-header">
   <h1>Announcements</h1>
@@ -79,8 +80,8 @@
       </td>
       <td class="actions">
         {% if a.file_exists %}
-        <a href="{{ url_for('announcements.ui_play', ann_id=a.id) }}"
-           class="btn btn-sm" target="_blank">Play</a>
+        <audio controls preload="none" class="inline-player"
+               src="{{ url_for('announcements.ui_play', ann_id=a.id) }}"></audio>
         {% endif %}
         {% if not a.active %}
         <form method="post"

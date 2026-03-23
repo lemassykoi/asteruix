@@ -11,24 +11,44 @@
   <nav class="navbar">
     <div class="navbar-brand">Asterisk WebUI</div>
     <ul class="navbar-nav">
-      <li><a href="{{ url_for('system.dashboard') }}">Dashboard</a></li>
-      <li><a href="{{ url_for('extensions.ui_list') }}">Extensions</a></li>
-      <li><a href="{{ url_for('trunks.ui_list') }}">Trunks</a></li>
-      <li><a href="{{ url_for('moh.ui_list') }}">MoH</a></li>
-      <li><a href="{{ url_for('announcements.ui_list') }}">Announcements</a></li>
-      <li><a href="{{ url_for('voicemail.ui_list') }}">Voicemail</a></li>
-      <li><a href="{{ url_for('timegroups.ui_list') }}">Time Groups</a></li>
-      <li><a href="{{ url_for('holidays.ui_list') }}">Holidays</a></li>
-      <li><a href="{{ url_for('spam.ui_list') }}">Spam</a></li>
-      <li><a href="{{ url_for('inbound.ui_list') }}">Inbound</a></li>
-      <li><a href="{{ url_for('outbound.ui_list') }}">Outbound</a></li>
-      <li><a href="{{ url_for('conference.ui_list') }}">Conference</a></li>
-      <li><a href="{{ url_for('ringgroups.ui_list') }}">Ring Groups</a></li>
-      <li><a href="{{ url_for('ivr.ui_list') }}">IVR</a></li>
-      <li><a href="{{ url_for('calllogs.ui_list') }}">Call Logs</a></li>
-      <li><a href="{{ url_for('dialplan.ui_view') }}">Dialplan</a></li>
-      <li><a href="{{ url_for('backups.ui_list') }}">Backups</a></li>
-      <li><a href="{{ url_for('settings.ui_settings') }}">Settings</a></li>
+      <li class="nav-dropdown">
+        <span class="nav-dropdown-toggle" tabindex="0">Telephony ▾</span>
+        <ul class="nav-dropdown-menu">
+          <li><a href="{{ url_for('extensions.ui_list') }}">Extensions</a></li>
+          <li><a href="{{ url_for('trunks.ui_list') }}">Trunks</a></li>
+          <li><a href="{{ url_for('ringgroups.ui_list') }}">Ring Groups</a></li>
+          <li><a href="{{ url_for('conference.ui_list') }}">Conference</a></li>
+        </ul>
+      </li>
+      <li class="nav-dropdown">
+        <span class="nav-dropdown-toggle" tabindex="0">Routing ▾</span>
+        <ul class="nav-dropdown-menu">
+          <li><a href="{{ url_for('inbound.ui_list') }}">Inbound</a></li>
+          <li><a href="{{ url_for('outbound.ui_list') }}">Outbound</a></li>
+          <li><a href="{{ url_for('timegroups.ui_list') }}">Time Groups</a></li>
+          <li><a href="{{ url_for('holidays.ui_list') }}">Holidays</a></li>
+          <li><a href="{{ url_for('spam.ui_list') }}">Spam</a></li>
+          <li><a href="{{ url_for('ivr.ui_list') }}">IVR</a></li>
+        </ul>
+      </li>
+      <li class="nav-dropdown">
+        <span class="nav-dropdown-toggle" tabindex="0">Media ▾</span>
+        <ul class="nav-dropdown-menu">
+          <li><a href="{{ url_for('moh.ui_list') }}">MoH</a></li>
+          <li><a href="{{ url_for('announcements.ui_list') }}">Announcements</a></li>
+          <li><a href="{{ url_for('voicemail.ui_list') }}">Voicemail</a></li>
+        </ul>
+      </li>
+      <li class="nav-dropdown">
+        <span class="nav-dropdown-toggle" tabindex="0">System ▾</span>
+        <ul class="nav-dropdown-menu">
+          <li><a href="{{ url_for('system.dashboard') }}">Dashboard</a></li>
+          <li><a href="{{ url_for('calllogs.ui_list') }}">Call Logs</a></li>
+          <li><a href="{{ url_for('dialplan.ui_view') }}">Dialplan</a></li>
+          <li><a href="{{ url_for('backups.ui_list') }}">Backups</a></li>
+          <li><a href="{{ url_for('settings.ui_settings') }}">Settings</a></li>
+        </ul>
+      </li>
     </ul>
     {% if session.get('username') %}
     <ul class="navbar-nav" style="margin-left:auto">
@@ -43,6 +63,20 @@
   <footer class="footer">
     <small>Asterisk SOHO PBX</small>
   </footer>
+  <div id="toast-container"></div>
+  <script>
+  (function(){
+    document.querySelectorAll('.alert').forEach(function(el){
+      var toast = document.createElement('div');
+      toast.className = 'toast ' + el.className.replace('alert','').trim();
+      toast.textContent = el.textContent.trim();
+      document.getElementById('toast-container').appendChild(toast);
+      el.remove();
+      setTimeout(function(){ toast.classList.add('toast-hide'); }, 4500);
+      setTimeout(function(){ toast.remove(); }, 5000);
+    });
+  })();
+  </script>
   {% block scripts %}{% endblock %}
 </body>
 </html>
