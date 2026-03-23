@@ -27,67 +27,78 @@
            value="{{ ext.callerid_name }}" placeholder="e.g. Reception">
   </div>
 
-  <div class="form-row">
-    <div class="form-group">
-      <label for="sip_password">SIP Password</label>
-      <input type="text" id="sip_password" name="sip_password" class="form-control"
-             value="{{ ext.sip_password }}" {% if is_new %}required{% endif %}
-             minlength="8" placeholder="Min 8 characters">
+  <fieldset class="form-fieldset">
+    <legend>Registration</legend>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="sip_password">SIP Password</label>
+        <input type="text" id="sip_password" name="sip_password" class="form-control"
+               value="{{ ext.sip_password }}" {% if is_new %}required{% endif %}
+               minlength="8" placeholder="Min 8 characters">
+        <small class="form-help">Minimum 8 characters. Used by the SIP phone to register.</small>
+      </div>
+      <div class="form-group">
+        <label for="vm_pin">Voicemail PIN</label>
+        <input type="text" id="vm_pin" name="vm_pin" class="form-control"
+               value="{{ ext.vm_pin }}" pattern="[0-9]{4,}" placeholder="e.g. 1234">
+        <small class="form-help">4+ digit PIN for voicemail access via *98.</small>
+      </div>
     </div>
-    <div class="form-group">
-      <label for="vm_pin">Voicemail PIN</label>
-      <input type="text" id="vm_pin" name="vm_pin" class="form-control"
-             value="{{ ext.vm_pin }}" pattern="[0-9]{4,}" placeholder="e.g. 1234">
-    </div>
-  </div>
 
-  <div class="form-row">
-    <div class="form-group">
-      <label for="codecs">Codecs</label>
-      <input type="text" id="codecs" name="codecs" class="form-control"
-             value="{{ ext.codecs }}" placeholder="g722,ulaw,alaw">
+    <div class="form-row">
+      <div class="form-group">
+        <label for="codecs">Codecs</label>
+        <input type="text" id="codecs" name="codecs" class="form-control"
+               value="{{ ext.codecs }}" placeholder="g722,ulaw,alaw">
+        <small class="form-help">Comma-separated, priority order. Common: g722, ulaw, alaw, g729.</small>
+      </div>
+      <div class="form-group">
+        <label for="max_contacts">Max Contacts</label>
+        <input type="number" id="max_contacts" name="max_contacts" class="form-control"
+               value="{{ ext.max_contacts }}" min="1" max="10">
+        <small class="form-help">How many devices can register with this extension simultaneously.</small>
+      </div>
     </div>
-    <div class="form-group">
-      <label for="max_contacts">Max Contacts</label>
-      <input type="number" id="max_contacts" name="max_contacts" class="form-control"
-             value="{{ ext.max_contacts }}" min="1" max="10">
-    </div>
-  </div>
+  </fieldset>
 
-  <div class="form-row">
-    <div class="form-group">
-      <label for="language">Language</label>
-      <select id="language" name="language" class="form-control">
-        <option value="fr" {{ "selected" if ext.language == "fr" }}>French (fr)</option>
-        <option value="en" {{ "selected" if ext.language == "en" }}>English (en)</option>
-      </select>
+  <fieldset class="form-fieldset">
+    <legend>Advanced</legend>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="language">Language</label>
+        <select id="language" name="language" class="form-control">
+          <option value="fr" {{ "selected" if ext.language == "fr" }}>French (fr)</option>
+          <option value="en" {{ "selected" if ext.language == "en" }}>English (en)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="dtmf_mode">DTMF Mode</label>
+        <select id="dtmf_mode" name="dtmf_mode" class="form-control">
+          <option value="rfc4733" {{ "selected" if ext.dtmf_mode == "rfc4733" }}>RFC 4733</option>
+          <option value="inband" {{ "selected" if ext.dtmf_mode == "inband" }}>Inband</option>
+          <option value="info" {{ "selected" if ext.dtmf_mode == "info" }}>SIP INFO</option>
+          <option value="auto" {{ "selected" if ext.dtmf_mode == "auto" }}>Auto</option>
+        </select>
+      </div>
     </div>
-    <div class="form-group">
-      <label for="dtmf_mode">DTMF Mode</label>
-      <select id="dtmf_mode" name="dtmf_mode" class="form-control">
-        <option value="rfc4733" {{ "selected" if ext.dtmf_mode == "rfc4733" }}>RFC 4733</option>
-        <option value="inband" {{ "selected" if ext.dtmf_mode == "inband" }}>Inband</option>
-        <option value="info" {{ "selected" if ext.dtmf_mode == "info" }}>SIP INFO</option>
-        <option value="auto" {{ "selected" if ext.dtmf_mode == "auto" }}>Auto</option>
-      </select>
-    </div>
-  </div>
 
-  <div class="form-row">
-    <div class="form-group">
-      <label for="musicclass">Music on Hold Class</label>
-      <input type="text" id="musicclass" name="musicclass" class="form-control"
-             value="{{ ext.musicclass }}" placeholder="default">
+    <div class="form-row">
+      <div class="form-group">
+        <label for="musicclass">Music on Hold Class</label>
+        <input type="text" id="musicclass" name="musicclass" class="form-control"
+               value="{{ ext.musicclass }}" placeholder="default">
+        <small class="form-help">MoH class played when this extension puts a caller on hold.</small>
+      </div>
+      <div class="form-group">
+        <label for="context">Dialplan Context</label>
+        <select id="context" name="context" class="form-control">
+          <option value="internal" {{ "selected" if ext.context == "internal" }}>internal</option>
+          <option value="from-trunk" {{ "selected" if ext.context == "from-trunk" }}>from-trunk</option>
+        </select>
+        <small class="text-muted">Use <strong>from-trunk</strong> for gateway devices (e.g. GOIP) so incoming calls flow through the inbound route (spam → holiday → time → open/closed). Extensions with from-trunk cannot make outbound or internal calls.</small>
+      </div>
     </div>
-    <div class="form-group">
-      <label for="context">Dialplan Context</label>
-      <select id="context" name="context" class="form-control">
-        <option value="internal" {{ "selected" if ext.context == "internal" }}>internal</option>
-        <option value="from-trunk" {{ "selected" if ext.context == "from-trunk" }}>from-trunk</option>
-      </select>
-      <small class="text-muted">Use <strong>from-trunk</strong> for gateway devices (e.g. GOIP) so incoming calls flow through the inbound route (spam → holiday → time → open/closed). Extensions with from-trunk cannot make outbound or internal calls.</small>
-    </div>
-  </div>
+  </fieldset>
 
   <div class="form-row">
     <div class="form-group" style="display:flex;align-items:end;padding-bottom:.5rem">

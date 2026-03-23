@@ -13,6 +13,7 @@
   {% endfor %}
 {% endwith %}
 
+{% if groups %}
 <table class="table">
   <thead>
     <tr>
@@ -37,11 +38,15 @@
         </form>
       </td>
     </tr>
-    {% else %}
-    <tr>
-      <td colspan="4" class="text-muted" style="text-align:center">No time groups configured.</td>
-    </tr>
     {% endfor %}
   </tbody>
 </table>
+{% else %}
+<div class="empty-state">
+  <div class="empty-state-icon">🕐</div>
+  <h2 class="empty-state-title">No time groups yet</h2>
+  <p class="empty-state-text">Time groups define business hours used by inbound routes to determine open/closed routing.</p>
+  <a href="{{ url_for('timegroups.ui_new') }}" class="btn btn-primary">Create your first time group</a>
+</div>
+{% endif %}
 {% endblock %}

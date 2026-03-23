@@ -61,6 +61,7 @@ def create_app():
     from app.backups import backups_bp
     from app.settings import settings_bp
     from app.calllogs import calllogs_bp
+    from app.audit_page import audit_page_bp
     app.register_blueprint(core_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(system_bp)
@@ -81,5 +82,6 @@ def create_app():
     app.register_blueprint(backups_bp)
     app.register_blueprint(settings_bp)
     app.register_blueprint(calllogs_bp)
+    app.register_blueprint(audit_page_bp)
 
     return app

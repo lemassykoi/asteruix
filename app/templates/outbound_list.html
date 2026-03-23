@@ -63,11 +63,11 @@
   </tbody>
 </table>
 {% else %}
-<div class="card">
-  <div class="card-body" style="text-align:center">
-    <p class="text-muted">No outbound routes configured.</p>
-    <p class="text-muted" style="font-size:.85rem">All outbound calls from internal extensions will be blocked until routes are added.</p>
-  </div>
+<div class="empty-state">
+  <div class="empty-state-icon">📤</div>
+  <h2 class="empty-state-title">No outbound routes yet</h2>
+  <p class="empty-state-text">Outbound routes define which dial patterns are allowed and which trunk carries the call. All outbound calls are blocked until routes are added.</p>
+  <a href="{{ url_for('outbound.ui_new') }}" class="btn btn-primary">Create your first outbound route</a>
 </div>
 {% endif %}
 {% endblock %}

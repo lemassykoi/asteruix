@@ -12,98 +12,110 @@
 <form method="post" class="form-card">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-  {% if is_new %}
-  <div class="form-group">
-    <label for="name">Trunk Name</label>
-    <input type="text" id="name" name="name" class="form-control"
-           value="{{ trunk.name }}" required pattern="[a-zA-Z][a-zA-Z0-9_-]{0,31}"
-           placeholder="e.g. w3tel or goip">
-  </div>
-  {% endif %}
-
-  <div class="form-row">
+  <fieldset class="form-fieldset">
+    <legend>General</legend>
+    {% if is_new %}
     <div class="form-group">
-      <label for="type">Trunk Type</label>
-      <select id="type" name="type" class="form-control" onchange="toggleTrunkTypeFields()">
-        <option value="registration" {{ "selected" if trunk.type == "registration" }}>Registration (SIP provider)</option>
-        <option value="identify" {{ "selected" if trunk.type == "identify" }}>Identify only (IP match)</option>
-        <option value="device" {{ "selected" if trunk.type == "device" }}>Device (registers to us)</option>
-      </select>
+      <label for="name">Trunk Name</label>
+      <input type="text" id="name" name="name" class="form-control"
+             value="{{ trunk.name }}" required pattern="[a-zA-Z][a-zA-Z0-9_-]{0,31}"
+             placeholder="e.g. w3tel or goip">
+      <small class="form-help">Unique identifier (letters, digits, hyphens, underscores).</small>
     </div>
-    <div class="form-group" style="display:flex;align-items:end;padding-bottom:.5rem">
-      <label>
-        <input type="checkbox" name="enabled" {{ "checked" if trunk.enabled }}>
-        Enabled
-      </label>
-    </div>
-  </div>
-
-  <div class="form-group">
-    <label for="host">Host</label>
-    <input type="text" id="host" name="host" class="form-control"
-           value="{{ trunk.host }}" required
-           placeholder="e.g. sip.w3tel.fr or 10.1.1.100">
-  </div>
-
-  <div class="form-group">
-    <label for="did">DID (Public Number)</label>
-    <input type="text" id="did" name="did" class="form-control"
-           value="{{ trunk.did }}" placeholder="e.g. 0238290202 or +33238290202">
-    <small class="form-text">The public phone number associated with this trunk. Used as outbound caller ID.</small>
-  </div>
-
-  <div id="registration-fields">
-    <div id="auth-fields">
-      <div class="form-row">
-        <div class="form-group">
-          <label for="username">Username</label>
-          <input type="text" id="username" name="username" class="form-control"
-                 value="{{ trunk.username }}" placeholder="SIP username / auth ID">
-        </div>
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" name="password" class="form-control"
-                 placeholder="{{ '(unchanged)' if not is_new else 'SIP password' }}">
-        </div>
-      </div>
-    </div>
+    {% endif %}
 
     <div class="form-row">
       <div class="form-group">
-        <label for="from_domain">From Domain</label>
-        <input type="text" id="from_domain" name="from_domain" class="form-control"
-               value="{{ trunk.from_domain }}" placeholder="e.g. sip.w3tel.fr">
+        <label for="type">Trunk Type</label>
+        <select id="type" name="type" class="form-control" onchange="toggleTrunkTypeFields()">
+          <option value="registration" {{ "selected" if trunk.type == "registration" }}>Registration (SIP provider)</option>
+          <option value="identify" {{ "selected" if trunk.type == "identify" }}>Identify only (IP match)</option>
+          <option value="device" {{ "selected" if trunk.type == "device" }}>Device (registers to us)</option>
+        </select>
+        <small class="form-help">Registration: PBX registers to provider. Identify: match by IP only. Device: device registers to PBX.</small>
       </div>
-      <div class="form-group">
-        <label for="contact_uri">Contact URI</label>
-        <input type="text" id="contact_uri" name="contact_uri" class="form-control"
-               value="{{ trunk.contact_uri }}" placeholder="sip:host (auto if empty)">
+      <div class="form-group" style="display:flex;align-items:end;padding-bottom:.5rem">
+        <label>
+          <input type="checkbox" name="enabled" {{ "checked" if trunk.enabled }}>
+          Enabled
+        </label>
       </div>
     </div>
+  </fieldset>
 
-    <div id="registration-uri-fields">
+  <fieldset class="form-fieldset">
+    <legend>Connection</legend>
+    <div class="form-group">
+      <label for="host">Host</label>
+      <input type="text" id="host" name="host" class="form-control"
+             value="{{ trunk.host }}" required
+             placeholder="e.g. sip.w3tel.fr or 10.1.1.100">
+      <small class="form-help">SIP provider hostname or device IP address.</small>
+    </div>
+
+    <div class="form-group">
+      <label for="did">DID (Public Number)</label>
+      <input type="text" id="did" name="did" class="form-control"
+             value="{{ trunk.did }}" placeholder="e.g. 0238290202 or +33238290202">
+      <small class="form-text">The public phone number associated with this trunk. Used as outbound caller ID.</small>
+    </div>
+  </fieldset>
+
+  <fieldset class="form-fieldset">
+    <legend>Authentication</legend>
+    <div id="registration-fields">
+      <div id="auth-fields">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" class="form-control"
+                   value="{{ trunk.username }}" placeholder="SIP username / auth ID">
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" class="form-control"
+                   placeholder="{{ '(unchanged)' if not is_new else 'SIP password' }}">
+          </div>
+        </div>
+      </div>
+
       <div class="form-row">
         <div class="form-group">
-          <label for="registration_server_uri">Registration Server URI</label>
-          <input type="text" id="registration_server_uri" name="registration_server_uri" class="form-control"
-                 value="{{ trunk.registration_server_uri }}" placeholder="sip:host (auto if empty)">
+          <label for="from_domain">From Domain</label>
+          <input type="text" id="from_domain" name="from_domain" class="form-control"
+                 value="{{ trunk.from_domain }}" placeholder="e.g. sip.w3tel.fr">
         </div>
         <div class="form-group">
-          <label for="registration_client_uri">Registration Client URI</label>
-          <input type="text" id="registration_client_uri" name="registration_client_uri" class="form-control"
-                 value="{{ trunk.registration_client_uri }}" placeholder="sip:user@host (auto if empty)">
+          <label for="contact_uri">Contact URI</label>
+          <input type="text" id="contact_uri" name="contact_uri" class="form-control"
+                 value="{{ trunk.contact_uri }}" placeholder="sip:host (auto if empty)">
+        </div>
+      </div>
+
+      <div id="registration-uri-fields">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="registration_server_uri">Registration Server URI</label>
+            <input type="text" id="registration_server_uri" name="registration_server_uri" class="form-control"
+                   value="{{ trunk.registration_server_uri }}" placeholder="sip:host (auto if empty)">
+          </div>
+          <div class="form-group">
+            <label for="registration_client_uri">Registration Client URI</label>
+            <input type="text" id="registration_client_uri" name="registration_client_uri" class="form-control"
+                   value="{{ trunk.registration_client_uri }}" placeholder="sip:user@host (auto if empty)">
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="form-group" id="identify-match-group">
-    <label for="identify_match">Identify Match (IP / hostname)</label>
-    <input type="text" id="identify_match" name="identify_match" class="form-control"
-           value="{{ trunk.identify_match }}"
-           placeholder="e.g. sip.w3tel.fr or 10.1.1.100 (optional for device trunks)">
-    <small class="form-text">For device trunks, this is optional — the device authenticates by username.</small>
-  </div>
+    <div class="form-group" id="identify-match-group">
+      <label for="identify_match">Identify Match (IP / hostname)</label>
+      <input type="text" id="identify_match" name="identify_match" class="form-control"
+             value="{{ trunk.identify_match }}"
+             placeholder="e.g. sip.w3tel.fr or 10.1.1.100 (optional for device trunks)">
+      <small class="form-text">For device trunks, this is optional — the device authenticates by username.</small>
+    </div>
+  </fieldset>
 
   <div class="form-actions">
     <button type="submit" class="btn btn-primary">

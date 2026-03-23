@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Audit Log — Asterisk WebUI{% endblock %}
+{% block container_class %}container-wide{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Audit Log</h1>
+  <div style="display:flex;align-items:center;gap:1rem">
+    <select onchange="location.href='{{ url_for('audit_page.ui_list') }}' + (this.value ? '?action=' + encodeURIComponent(this.value) : '')"
+            style="padding:.3rem .5rem;border-radius:4px;border:1px solid #ced4da">
+      <option value="">All actions</option>
+      {% for a in action_types %}
+      <option value="{{ a }}" {% if a == action_filter %}selected{% endif %}>{{ a }}</option>
+      {% endfor %}
+    </select>
+    <span class="text-muted">{{ total }} entr{{ 'y' if total == 1 else 'ies' }}</span>
+  </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="flash-messages">
+  {% for category, message in messages %}
+  <div class="alert alert-{{ category }}">{{ message }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+{% if entries %}
+<table class="table">
+  <thead>
+    <tr>
+      <th>Time</th>
+      <th>User</th>
+      <th>Action</th>
+      <th>Target</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for e in entries %}
+    <tr>
+      <td style="white-space:nowrap">{{ e.ts }}</td>
+      <td>{{ e.username }}</td>
+      <td><code>{{ e.action }}</code></td>
+      <td>{{ e.target }}</td>
+      <td>
+        {% if e.status == 'ok' %}
+          <span class="badge badge-ok">ok</span>
+        {% else %}
+          <span class="badge badge-off">{{ e.status }}</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if total_pages > 1 %}
+<div class="pagination">
+  {% if page > 1 %}
+    <a href="{{ url_for('audit_page.ui_list', page=1, action=action_filter if action_filter else None) }}" class="btn btn-sm btn-page">« First</a>
+    <a href="{{ url_for('audit_page.ui_list', page=page-1, action=action_filter if action_filter else None) }}" class="btn btn-sm btn-page">‹ Prev</a>
+  {% endif %}
+  <span class="page-info">Page {{ page }} / {{ total_pages }}</span>
+  {% if page < total_pages %}
+    <a href="{{ url_for('audit_page.ui_list', page=page+1, action=action_filter if action_filter else None) }}" class="btn btn-sm btn-page">Next ›</a>
+    <a href="{{ url_for('audit_page.ui_list', page=total_pages, action=action_filter if action_filter else None) }}" class="btn btn-sm btn-page">Last »</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<p class="text-muted" style="margin-top:2rem">No audit log entries found.</p>
+{% endif %}
+{% endblock %}

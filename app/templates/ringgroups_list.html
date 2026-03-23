@@ -13,6 +13,7 @@
   {% endfor %}
 {% endwith %}
 
+{% if groups %}
 <table class="table">
   <thead>
     <tr>
@@ -56,11 +57,15 @@
         </form>
       </td>
     </tr>
-    {% else %}
-    <tr>
-      <td colspan="8" class="text-muted" style="text-align:center">No ring groups configured.</td>
-    </tr>
     {% endfor %}
   </tbody>
 </table>
+{% else %}
+<div class="empty-state">
+  <div class="empty-state-icon">👥</div>
+  <h2 class="empty-state-title">No ring groups yet</h2>
+  <p class="empty-state-text">Ring groups let multiple extensions ring simultaneously or in sequence when a number is dialed.</p>
+  <a href="{{ url_for('ringgroups.ui_new') }}" class="btn btn-primary">Create your first ring group</a>
+</div>
+{% endif %}
 {% endblock %}

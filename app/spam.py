@@ -188,6 +188,36 @@ def ui_bulk_import():
     return redirect(url_for("spam.ui_list"))
 
 
+@spam_bp.route("/spam-prefixes/bulk-delete", methods=["POST"])
+@login_required
+def ui_bulk_delete():
+    selected = request.form.getlist("selected")
+    if not selected:
+        flash("No prefixes selected.", "danger")
+        return redirect(url_for("spam.ui_list"))
+
+    deleted = []
+    errors = []
+    for prefix in selected:
+        if not PREFIX_RE.match(prefix):
+            continue
+        try:
+            run_command(f"database del {SPAM_FAMILY} {prefix}")
+            deleted.append(prefix)
+        except AsteriskCommandError:
+            errors.append(prefix)
+
+    username = get_current_user() or "system"
+    if deleted:
+        log_action("spam_prefix_bulk_delete", target=f"{len(deleted)} prefixes",
+                   before={"prefixes": deleted}, username=username)
+        flash(f"Deleted {len(deleted)} prefix(es).", "info")
+    if errors:
+        flash(f"Failed to delete {len(errors)} prefix(es).", "danger")
+
+    return redirect(url_for("spam.ui_list"))
+
+
 @spam_bp.route("/spam-prefixes/<prefix>/delete", methods=["POST"])
 @login_required
 def ui_delete(prefix):

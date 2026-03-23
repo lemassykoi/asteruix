@@ -76,37 +76,55 @@
 
 <!-- Current prefixes -->
 <div class="form-card">
-  <h2>Active Prefixes <small style="color:#6c757d;font-weight:normal">({{ prefixes|length }} total)</small></h2>
-  <table class="table" style="margin-top:1rem">
-    <thead>
-      <tr>
-        <th>Prefix</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for p in prefixes %}
-      <tr>
-        <td><code>{{ p.key }}</code></td>
-        <td class="actions">
-          <form method="post" action="{{ url_for('spam.ui_delete', prefix=p.key) }}"
-                style="display:inline" onsubmit="return confirm('Remove spam prefix {{ p.key }}?')">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-          </form>
-        </td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="2" class="text-muted" style="text-align:center">No spam prefixes configured.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <h2 style="margin-top:0;border:none;padding:0">Active Prefixes <small style="color:#6c757d;font-weight:normal">({{ prefixes|length }} total)</small></h2>
+    <button type="submit" form="bulk-delete-form" class="btn btn-sm btn-danger"
+            onclick="return document.querySelectorAll('input[name=selected]:checked').length > 0 ? confirm('Delete selected prefixes?') : (alert('No prefixes selected.'), false)">
+      Delete Selected
+    </button>
+  </div>
+  <form id="bulk-delete-form" method="post" action="{{ url_for('spam.ui_bulk_delete') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <table class="table" style="margin-top:1rem">
+      <thead>
+        <tr>
+          <th style="width:2rem"><input type="checkbox" id="select-all"></th>
+          <th>Prefix</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in prefixes %}
+        <tr>
+          <td><input type="checkbox" name="selected" value="{{ p.key }}"></td>
+          <td><code>{{ p.key }}</code></td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="2" class="text-muted" style="text-align:center">No spam prefixes configured.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </form>
 
   <p style="margin-top:1rem;color:#6c757d;font-size:0.9em">
     Spam prefixes are checked against the first 4 digits of incoming caller ID.
     Matching calls are rejected immediately (cause 21).
   </p>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  var selectAll = document.getElementById('select-all');
+  if (selectAll) {
+    selectAll.addEventListener('change', function(){
+      document.querySelectorAll('input[name="selected"]').forEach(function(cb){
+        cb.checked = selectAll.checked;
+      });
+    });
+  }
+})();
+</script>
 {% endblock %}

@@ -13,6 +13,7 @@
   {% endfor %}
 {% endwith %}
 
+{% if trunks %}
 <table class="table">
   <thead>
     <tr>
@@ -52,11 +53,15 @@
         </form>
       </td>
     </tr>
-    {% else %}
-    <tr>
-      <td colspan="6" class="text-muted" style="text-align:center">No trunks configured.</td>
-    </tr>
     {% endfor %}
   </tbody>
 </table>
+{% else %}
+<div class="empty-state">
+  <div class="empty-state-icon">🔗</div>
+  <h2 class="empty-state-title">No trunks yet</h2>
+  <p class="empty-state-text">Trunks connect your PBX to external phone providers (SIP, GOIP) for inbound and outbound calls.</p>
+  <a href="{{ url_for('trunks.ui_new') }}" class="btn btn-primary">Create your first trunk</a>
+</div>
+{% endif %}
 {% endblock %}

@@ -38,6 +38,7 @@
   </div>
 </div>
 
+{% if announcements %}
 <table class="table">
   <thead>
     <tr>
@@ -99,13 +100,16 @@
         </form>
       </td>
     </tr>
-    {% else %}
-    <tr>
-      <td colspan="8" class="text-muted" style="text-align:center">No announcements configured.</td>
-    </tr>
     {% endfor %}
   </tbody>
 </table>
+{% else %}
+<div class="empty-state">
+  <div class="empty-state-icon">📢</div>
+  <h2 class="empty-state-title">No announcements yet</h2>
+  <p class="empty-state-text">Use the upload form above to add your first announcement.</p>
+</div>
+{% endif %}
 
 <div class="card" style="margin-top:1rem">
   <div class="card-body" style="font-size:.85rem">

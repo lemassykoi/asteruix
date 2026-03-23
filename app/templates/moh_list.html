@@ -13,6 +13,7 @@
   {% endfor %}
 {% endwith %}
 
+{% if classes %}
 {% for item in classes %}
 <div class="card" style="margin-bottom:1.5rem">
   <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
@@ -75,7 +76,13 @@
     </div>
   </div>
 </div>
-{% else %}
-<p class="text-muted" style="text-align:center;margin:2rem 0">No MoH classes configured.</p>
 {% endfor %}
+{% else %}
+<div class="empty-state">
+  <div class="empty-state-icon">🎵</div>
+  <h2 class="empty-state-title">No music on hold classes yet</h2>
+  <p class="empty-state-text">Music on Hold classes contain audio tracks that callers hear while waiting.</p>
+  <a href="{{ url_for('moh.ui_new_class') }}" class="btn btn-primary">Create your first MoH class</a>
+</div>
+{% endif %}
 {% endblock %}

@@ -487,4 +487,58 @@ code {
   background: #dee2e6;
 }
 
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  margin: 2rem 0;
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.empty-state-title {
+  font-size: 1.3rem;
+  margin-top: 0;
+  border: none;
+  padding: 0;
+}
+
+.empty-state-text {
+  color: #6c757d;
+  margin: .5rem 0 1.5rem;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Form fieldset grouping */
+.form-fieldset {
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 1rem 1.25rem .5rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-fieldset legend {
+  font-size: .85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: #6c757d;
+  padding: 0 .5rem;
+  width: auto;
+}
+
+/* Form help text */
+.form-help,
+.form-text {
+  display: block;
+  margin-top: .25rem;
+  font-size: .8rem;
+  color: #6c757d;
+}
+
 
