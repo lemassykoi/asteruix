@@ -353,13 +353,14 @@ download_asterisk() {
     info "Creating symlink $ASTERISK_SRC_DIR -> $extracted_dir"
     rm -f "$ASTERISK_SRC_DIR"
     ln -sfn "$extracted_dir" "$ASTERISK_SRC_DIR"
-    info "Symlink created: $(ls -la "$ASTERISK_SRC_DIR")"
+    info "Symlink created: $(ls -ld "$ASTERISK_SRC_DIR" 2>/dev/null || echo "symlink at $ASTERISK_SRC_DIR")"
 
     info "Changing directory to $ASTERISK_SRC_DIR"
     cd "$ASTERISK_SRC_DIR"
+    pwd_check=$(pwd)
     info "Asterisk source ready at $ASTERISK_SRC_DIR"
-    info "Current directory: $(pwd)"
-    info "Directory contents: $(ls -1 | head -10)"
+    info "Current directory: $pwd_check"
+    info "Directory contents: $(ls -1 2>/dev/null | head -10 || echo 'unable to list')"
 }
 
 configure_asterisk() {
