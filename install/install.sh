@@ -293,11 +293,13 @@ download_asterisk() {
     # Clean up any existing Asterisk source to ensure fresh install
     if [[ -e /usr/src/asterisk-22-current.tar.gz ]] || \
        [[ -d /usr/src/asterisk-22.* ]] || \
-       [[ -L /usr/src/asterisk-22 ]]; then
+       [[ -L /usr/src/asterisk-22 ]] || \
+       [[ -d /usr/src/asterisk-22 ]]; then
         info "Cleaning up existing Asterisk source..."
         rm -f /usr/src/asterisk-22-current.tar.gz
         rm -rf /usr/src/asterisk-22.*
-        rm -f /usr/src/asterisk-22
+        # Remove symlink or directory (force remove for safety)
+        rm -rf /usr/src/asterisk-22
         info "Cleanup complete"
     fi
 
@@ -329,10 +331,9 @@ download_asterisk() {
     fi
 
     # Create symlink for easier access
-    if [[ ! -L "$ASTERISK_SRC_DIR" ]]; then
-        ln -sfn "$extracted_dir" "$ASTERISK_SRC_DIR"
-        info "Created symlink: $ASTERISK_SRC_DIR -> $extracted_dir"
-    fi
+    rm -f "$ASTERISK_SRC_DIR"
+    ln -sfn "$extracted_dir" "$ASTERISK_SRC_DIR"
+    info "Created symlink: $ASTERISK_SRC_DIR -> $extracted_dir"
 
     cd "$ASTERISK_SRC_DIR"
     info "Asterisk source ready at $ASTERISK_SRC_DIR"
