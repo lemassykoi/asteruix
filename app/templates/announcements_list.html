@@ -79,25 +79,29 @@
           <span class="text-muted">—</span>
         {% endif %}
       </td>
-      <td class="actions">
+      <td class="actions" style="white-space:normal">
         {% if a.file_exists %}
-        <audio controls preload="none" class="inline-player"
-               src="{{ url_for('announcements.ui_play', ann_id=a.id) }}"></audio>
+        <div style="margin-bottom:.35rem">
+          <audio controls preload="none" class="inline-player"
+                 src="{{ url_for('announcements.ui_play', ann_id=a.id) }}"></audio>
+        </div>
         {% endif %}
-        {% if not a.active %}
-        <form method="post"
-              action="{{ url_for('announcements.ui_activate', ann_id=a.id) }}"
-              style="display:inline">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn btn-sm btn-primary" title="Use as closed-hours announcement">Set Closed-Hours</button>
-        </form>
-        {% endif %}
-        <form method="post"
-              action="{{ url_for('announcements.ui_delete', ann_id=a.id) }}"
-              style="display:inline" onsubmit="return confirm('Delete announcement {{ a.key_name }}?')">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-        </form>
+        <div style="display:flex;gap:.35rem;flex-wrap:wrap">
+          {% if not a.active %}
+          <form method="post"
+                action="{{ url_for('announcements.ui_activate', ann_id=a.id) }}"
+                style="display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-primary" title="Use as closed-hours announcement">Set Closed-Hours</button>
+          </form>
+          {% endif %}
+          <form method="post"
+                action="{{ url_for('announcements.ui_delete', ann_id=a.id) }}"
+                style="display:inline" onsubmit="return confirm('Delete announcement {{ a.key_name }}?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+          </form>
+        </div>
       </td>
     </tr>
     {% endfor %}

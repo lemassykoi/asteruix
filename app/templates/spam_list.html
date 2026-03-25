@@ -14,7 +14,7 @@
 
 <!-- Blocked calls log -->
 <div class="form-card" style="margin-bottom:2rem">
-  <h2>Blocked Calls <small style="color:#6c757d;font-weight:normal">(last {{ blocked|length }})</small></h2>
+  <h2>Blocked Calls <small style="color:var(--color-text-muted);font-weight:normal">(last {{ blocked|length }})</small></h2>
   {% if blocked %}
   <table class="table" style="margin-top:1rem">
     <thead>
@@ -35,7 +35,7 @@
     </tbody>
   </table>
   {% else %}
-  <p style="margin-top:1rem;color:#6c757d">No blocked calls recorded yet.</p>
+  <p style="margin-top:1rem;color:var(--color-text-muted)">No blocked calls recorded yet.</p>
   {% endif %}
 </div>
 
@@ -47,7 +47,7 @@
     <div class="form-row">
       <div class="form-group">
         <label for="prefix">4-digit Prefix</label>
-        <input type="text" id="prefix" name="prefix" placeholder="0161"
+        <input type="text" id="prefix" name="prefix" class="form-control" placeholder="0161"
                maxlength="4" pattern="[0-9]{4}" required style="width:100px">
       </div>
       <div class="form-group" style="align-self:flex-end">
@@ -64,7 +64,7 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="form-group">
       <label for="bulk_prefixes">Paste prefixes (one per line, or comma/space separated)</label>
-      <textarea id="bulk_prefixes" name="prefixes" rows="4"
+      <textarea id="bulk_prefixes" name="prefixes" class="form-control" rows="4"
                 placeholder="0161&#10;0162&#10;0270&#10;0271"
                 style="width:100%;font-family:monospace"></textarea>
     </div>
@@ -77,7 +77,7 @@
 <!-- Current prefixes -->
 <div class="form-card">
   <div style="display:flex;justify-content:space-between;align-items:center">
-    <h2 style="margin-top:0;border:none;padding:0">Active Prefixes <small style="color:#6c757d;font-weight:normal">({{ prefixes|length }} total)</small></h2>
+    <h2 style="margin-top:0;border:none;padding:0">Active Prefixes <small style="color:var(--color-text-muted);font-weight:normal">({{ prefixes|length }} total)</small></h2>
     <button type="submit" form="bulk-delete-form" class="btn btn-sm btn-danger"
             onclick="return document.querySelectorAll('input[name=selected]:checked').length > 0 ? confirm('Delete selected prefixes?') : (alert('No prefixes selected.'), false)">
       Delete Selected
@@ -107,7 +107,7 @@
     </table>
   </form>
 
-  <p style="margin-top:1rem;color:#6c757d;font-size:0.9em">
+  <p style="margin-top:1rem;color:var(--color-text-muted);font-size:0.9em">
     Spam prefixes are checked against the first 4 digits of incoming caller ID.
     Matching calls are rejected immediately (cause 21).
   </p>

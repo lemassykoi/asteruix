@@ -16,9 +16,10 @@
   {% endfor %}
 {% endwith %}
 
-<div class="form-card">
-  <h2>Available Backups <small style="color:#6c757d;font-weight:normal">({{ backups|length }} total)</small></h2>
-  <table class="table" style="margin-top:1rem">
+<div class="card">
+  <div class="card-header">Available Backups <small style="color:var(--color-text-muted);font-weight:normal">({{ backups|length }} total)</small></div>
+  <div class="card-body">
+  <table class="table">
     <thead>
       <tr>
         <th>Filename</th>
@@ -34,6 +35,7 @@
         <td>{{ b.size }}</td>
         <td>{{ b.date }}</td>
         <td class="actions">
+          <a href="{{ url_for('backups.ui_download', filename=b.filename) }}" class="btn btn-sm btn-primary" title="Download">Download</a>
           <form method="post" action="{{ url_for('backups.ui_restore') }}" style="display:inline"
                 onsubmit="return this.querySelector('[name=confirm]').value === 'RESTORE' || (alert('Type RESTORE to confirm'), false)">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -51,9 +53,10 @@
     </tbody>
   </table>
 
-  <p style="margin-top:1rem;color:#6c757d;font-size:0.9em">
+  <p style="margin-top:1rem;color:var(--color-text-muted);font-size:0.9em">
     Backups include <code>/etc/asterisk/</code>, voicemail spools, and the AstDB.
     Restoring will stop Asterisk, extract the backup, fix permissions, and restart.
   </p>
+  </div>
 </div>
 {% endblock %}

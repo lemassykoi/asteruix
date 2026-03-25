@@ -122,7 +122,7 @@ def login():
                 next_url = url_for("core.index")
             return redirect(next_url)
         flash("Invalid credentials.", "danger")
-        log_action("login_failed", target=form.username.data, status="fail")
+        log_action("login_failed", target=form.username.data, status="fail", username=form.username.data)
 
     return render_template("login.html", form=form)
 

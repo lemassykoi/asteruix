@@ -50,7 +50,7 @@
           </button>
         </form>
       </td>
-      <td>
+      <td class="actions">
         <a href="{{ url_for('outbound.ui_edit', route_id=r.id) }}" class="btn btn-sm">Edit</a>
         <form method="post" action="{{ url_for('outbound.ui_delete', route_id=r.id) }}"
               style="display:inline" onsubmit="return confirm('Delete route \'{{ r.name }}\'?')">

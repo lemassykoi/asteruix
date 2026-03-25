@@ -11,7 +11,7 @@ import re
 import subprocess
 from datetime import datetime
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, flash, jsonify, redirect, render_template, request, send_file, url_for
 
 from app.audit import log_action
 from app.auth import get_current_user, login_required
@@ -176,6 +176,19 @@ def api_restore():
 def ui_list():
     backups = _list_backups()
     return render_template("backups.html", backups=backups)
+
+
+@backups_bp.route("/backups/download/<filename>")
+@login_required
+def ui_download(filename):
+    if not FILENAME_RE.match(filename):
+        flash("Invalid backup filename.", "danger")
+        return redirect(url_for("backups.ui_list"))
+    backup_path = os.path.join(BACKUP_DIR, filename)
+    if not os.path.isfile(backup_path):
+        flash("Backup file not found.", "danger")
+        return redirect(url_for("backups.ui_list"))
+    return send_file(backup_path, as_attachment=True, download_name=filename)
 
 
 @backups_bp.route("/backups/create", methods=["POST"])

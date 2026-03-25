@@ -14,14 +14,14 @@
 
 <!-- Fixed Holidays -->
 <div class="form-card" style="margin-bottom:2rem">
-  <h2>Fixed Holidays <small style="color:#6c757d;font-weight:normal">(MMDD — every year)</small></h2>
+  <h2>Fixed Holidays <small style="color:var(--color-text-muted);font-weight:normal">(MMDD — every year)</small></h2>
 
   <form method="post" action="{{ url_for('holidays.ui_add_fixed') }}" class="inline-add-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="form-row">
       <div class="form-group">
         <label for="fixed_month">Month</label>
-        <select id="fixed_month" name="month" required>
+        <select id="fixed_month" name="month" class="form-control" required>
           <option value="01">01 — Jan</option>
           <option value="02">02 — Feb</option>
           <option value="03">03 — Mar</option>
@@ -38,12 +38,12 @@
       </div>
       <div class="form-group">
         <label for="fixed_day">Day</label>
-        <input type="text" id="fixed_day" name="day" placeholder="01" maxlength="2"
+        <input type="text" id="fixed_day" name="day" class="form-control" placeholder="01" maxlength="2"
                pattern="(0[1-9]|[12]\d|3[01])" required style="width:60px">
       </div>
       <div class="form-group" style="flex:2">
         <label for="fixed_name">Name</label>
-        <input type="text" id="fixed_name" name="name" placeholder="e.g. New Year" maxlength="64">
+        <input type="text" id="fixed_name" name="name" class="form-control" placeholder="e.g. New Year" maxlength="64">
       </div>
       <div class="form-group" style="align-self:flex-end">
         <button type="submit" class="btn btn-primary">Add</button>
@@ -85,18 +85,18 @@
 
 <!-- Variable Holidays -->
 <div class="form-card">
-  <h2>Variable Holidays <small style="color:#6c757d;font-weight:normal">(YYYYMMDD — specific year)</small></h2>
+  <h2>Variable Holidays <small style="color:var(--color-text-muted);font-weight:normal">(YYYYMMDD — specific year)</small></h2>
 
   <form method="post" action="{{ url_for('holidays.ui_add_variable') }}" class="inline-add-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="form-row">
       <div class="form-group" style="flex:1">
         <label for="var_date">Date</label>
-        <input type="date" id="var_date" name="date" required>
+        <input type="date" id="var_date" name="date" class="form-control" required>
       </div>
       <div class="form-group" style="flex:2">
         <label for="var_name">Name</label>
-        <input type="text" id="var_name" name="name" placeholder="e.g. Easter Monday" maxlength="64">
+        <input type="text" id="var_name" name="name" class="form-control" placeholder="e.g. Easter Monday" maxlength="64">
       </div>
       <div class="form-group" style="align-self:flex-end">
         <button type="submit" class="btn btn-primary">Add</button>
@@ -135,7 +135,7 @@
     </tbody>
   </table>
 
-  <p style="margin-top:1rem;color:#6c757d;font-size:0.9em">
+  <p style="margin-top:1rem;color:var(--color-text-muted);font-size:0.9em">
     <strong>Reminder:</strong> Variable holidays (Easter-based dates) need to be updated each year.
   </p>
 </div>

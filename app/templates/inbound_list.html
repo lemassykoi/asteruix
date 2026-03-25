@@ -65,9 +65,10 @@
     <div class="form-actions" style="margin-top:1rem">
       <a href="{{ url_for('inbound.ui_edit', route_id=r.id) }}" class="btn btn-sm btn-primary">Edit</a>
       <form method="post" action="{{ url_for('inbound.ui_delete', route_id=r.id) }}"
-            style="display:inline" onsubmit="return confirm('Delete route \'{{ r.name }}\'?')">
+            style="display:contents" onsubmit="return confirm('Delete route \'{{ r.name }}\'?')">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        <a href="javascript:void(0)" class="btn btn-sm btn-danger"
+           onclick="this.closest('form').submit()">Delete</a>
       </form>
     </div>
   </div>

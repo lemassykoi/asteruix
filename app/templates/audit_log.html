@@ -39,7 +39,7 @@
   </thead>
   <tbody>
     {% for e in entries %}
-    <tr>
+    <tr{% if e.action == 'login_failed' %} style="background:var(--color-danger-bg)"{% endif %}>
       <td style="white-space:nowrap">{{ e.ts }}</td>
       <td>{{ e.username }}</td>
       <td><code>{{ e.action }}</code></td>
@@ -47,6 +47,8 @@
       <td>
         {% if e.status == 'ok' %}
           <span class="badge badge-ok">ok</span>
+        {% elif e.action == 'login_failed' %}
+          <span class="badge badge-danger">{{ e.status }}</span>
         {% else %}
           <span class="badge badge-off">{{ e.status }}</span>
         {% endif %}
