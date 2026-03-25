@@ -726,6 +726,60 @@ import_config() {
     deactivate
 }
 
+create_default_config() {
+    info "Creating default configuration..."
+
+    cd "$WEBUI_DIR"
+    source "$WEBUI_DIR/venv/bin/activate"
+
+    # Create default time group (9am-5pm, Mon-Fri)
+    info "Creating default time group (Business Hours)..."
+    python3 manage.py create-timegroup \
+        --name "Business Hours" \
+        --time "09:00-17:00" \
+        --weekdays "mon,tue,wed,thu,fri" 2>/dev/null || \
+    info "Time group created or already exists"
+
+    # Create TTS announcement for welcome message
+    info "Creating welcome announcement..."
+    python3 manage.py create-announcement \
+        --name "Welcome" \
+        --type "tts" \
+        --text "Welcome to your new Asterisk phone system. Please contact your administrator for extension setup." 2>/dev/null || \
+    info "Welcome announcement created or already exists"
+
+    # Create default extension 4900
+    info "Creating default extension 4900..."
+    python3 manage.py create-extension \
+        --extension "4900" \
+        --name "Default User" \
+        --secret "4900" \
+        --context "from-internal" 2>/dev/null || \
+    info "Extension 4900 created or already exists"
+
+    # Create default inbound route
+    info "Creating default inbound route..."
+    python3 manage.py create-inbound \
+        --name "Default Route" \
+        --destination "extension:4900" 2>/dev/null || \
+    info "Default inbound route created or already exists"
+
+    # Reload Asterisk to apply changes
+    info "Reloading Asterisk configuration..."
+    asterisk -rx "core reload" 2>/dev/null || true
+
+    deactivate
+
+    info "Default configuration complete"
+    info ""
+    info "=== Default Configuration ==="
+    info "Extension: 4900"
+    info "Password:  4900"
+    info "Time Group: Business Hours (Mon-Fri, 9am-5pm)"
+    info "Welcome announcement: TTS enabled"
+    info ""
+}
+
 install_webui_service() {
     info "Installing AsterUIX WebUI systemd service..."
 
@@ -1072,6 +1126,7 @@ main() {
     setup_database
     migrate_includes
     import_config
+    create_default_config
     install_webui_service
     start_webui
 

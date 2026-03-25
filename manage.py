@@ -425,6 +425,120 @@ def import_conference(args):
             print("Managed ConfBridge config file generated.")
 
 
+def create_timegroup(args):
+    """Create a time group."""
+    import json
+    app = create_app()
+    with app.app_context():
+        db = get_db()
+
+        name = args.name or "Business Hours"
+        start, end = args.time.split("-")
+        days = args.weekdays.split(",")
+
+        rules = [{"start": start, "end": end, "days": days}]
+        rules_json = json.dumps(rules)
+
+        db.execute(
+            "INSERT INTO time_groups (name, timezone, rules_json) VALUES (?, ?, ?) "
+            "ON CONFLICT(name) DO UPDATE SET rules_json=excluded.rules_json",
+            (name, "Europe/Paris", rules_json),
+        )
+        db.commit()
+        print(f"Time group '{name}' created.")
+
+
+def create_announcement(args):
+    """Create an announcement (file or TTS)."""
+    app = create_app()
+    with app.app_context():
+        db = get_db()
+
+        name = args.name
+        key_name = f"custom-{name.lower().replace(' ', '-')}"
+
+        if args.type == "tts":
+            # Store TTS text in announcement_text table
+            db.execute(
+                "INSERT INTO announcements (key_name, filename, language, active, is_tts) "
+                "VALUES (?, ?, 'fr', 1, 1) "
+                "ON CONFLICT(key_name) DO NOTHING",
+                (key_name, f"{key_name}.wav16"),
+            )
+            db.execute(
+                "INSERT OR REPLACE INTO announcement_texts (announcement_key, text) VALUES (?, ?)",
+                (key_name, args.text),
+            )
+            db.commit()
+            print(f"TTS announcement '{name}' created.")
+        else:
+            db.execute(
+                "INSERT INTO announcements (key_name, filename, language, active) VALUES (?, ?, 'fr', 1) "
+                "ON CONFLICT(key_name) DO NOTHING",
+                (key_name, f"{key_name}.wav16"),
+            )
+            db.commit()
+            print(f"Announcement '{name}' created.")
+
+
+def create_extension(args):
+    """Create a SIP extension."""
+    app = create_app()
+    with app.app_context():
+        db = get_db()
+
+        ext = args.extension
+        name = args.name or f"Extension {ext}"
+        secret = args.secret or ext
+
+        db.execute(
+            "INSERT INTO extensions (ext, callerid_name, sip_password, vm_pin, "
+            "enabled, max_contacts, codecs, language, dtmf_mode, musicclass) "
+            "VALUES (?, ?, ?, ?, 1, 3, 'g722,ulaw,alaw', 'fr', 'rfc4733', 'default') "
+            "ON CONFLICT(ext) DO UPDATE SET callerid_name=excluded.callerid_name, "
+            "sip_password=excluded.sip_password",
+            (ext, name, secret, "1234"),
+        )
+        db.execute(
+            "INSERT OR REPLACE INTO voicemail_boxes (mailbox, pin, name) VALUES (?, ?, ?)",
+            (ext, "1234", name),
+        )
+        db.commit()
+        print(f"Extension {ext} ({name}) created.")
+
+
+def create_inbound(args):
+    """Create an inbound route."""
+    app = create_app()
+    with app.app_context():
+        db = get_db()
+
+        name = args.name or "Default Route"
+        destination = args.destination or "extension:4900"
+
+        # Parse destination
+        dest_type, dest_value = destination.split(":") if ":" in destination else ("extension", destination)
+
+        # Get first time group if exists
+        tg = db.execute("SELECT id FROM time_groups ORDER BY id LIMIT 1").fetchone()
+        tg_id = tg["id"] if tg else None
+
+        # Get first active announcement for closed
+        ann = db.execute(
+            "SELECT key_name FROM announcements WHERE active = 1 LIMIT 1"
+        ).fetchone()
+        closed_ann = ann["key_name"] if ann else "custom-closed"
+
+        db.execute(
+            "INSERT INTO inbound_routes (name, open_target, closed_announcement, time_group_id) "
+            "VALUES (?, ?, ?, ?) "
+            "ON CONFLICT(name) DO UPDATE SET open_target=excluded.open_target",
+            (name, dest_value, closed_ann, tg_id),
+        )
+        db.commit()
+        print(f"Inbound route '{name}' created.")
+
+
 def main():
     parser = argparse.ArgumentParser(description="AsterUIX management")
     sub = parser.add_subparsers(dest="command")
@@ -480,6 +594,31 @@ def main():
     p_conf.add_argument("--generate", action="store_true",
                         help="Also generate managed ConfBridge config file")
     p_conf.set_defaults(func=import_conference)
+
+    # Create commands for fresh installations
+    p_ctg = sub.add_parser("create-timegroup", help="Create a time group")
+    p_ctg.add_argument("--name", default="Business Hours", help="Time group name")
+    p_ctg.add_argument("--time", required=True, help="Time range (e.g., 09:00-17:00)")
+    p_ctg.add_argument("--weekdays", required=True, help="Comma-separated weekdays (mon,tue,wed,thu,fri)")
+    p_ctg.set_defaults(func=create_timegroup)
+
+    p_cann = sub.add_parser("create-announcement", help="Create an announcement")
+    p_cann.add_argument("--name", required=True, help="Announcement name")
+    p_cann.add_argument("--type", choices=["file", "tts"], default="file", help="Announcement type")
+    p_cann.add_argument("--text", help="TTS text (required for type=tts)")
+    p_cann.set_defaults(func=create_announcement)
+
+    p_cext = sub.add_parser("create-extension", help="Create a SIP extension")
+    p_cext.add_argument("--extension", required=True, help="Extension number")
+    p_cext.add_argument("--name", help="Caller ID name")
+    p_cext.add_argument("--secret", help="SIP password (defaults to extension number)")
+    p_cext.add_argument("--context", default="from-internal", help="Dialplan context")
+    p_cext.set_defaults(func=create_extension)
+
+    p_cinb = sub.add_parser("create-inbound", help="Create an inbound route")
+    p_cinb.add_argument("--name", help="Route name")
+    p_cinb.add_argument("--destination", help="Destination (extension:XXXX or conference:XXXX)")
+    p_cinb.set_defaults(func=create_inbound)
 
     args = parser.parse_args()
     if not args.command:
