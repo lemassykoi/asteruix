@@ -291,16 +291,35 @@ download_asterisk() {
     info "Downloading Asterisk 22 LTS source..."
 
     # Clean up any existing Asterisk source to ensure fresh install
-    if [[ -e /usr/src/asterisk-22-current.tar.gz ]] || \
-       [[ -d /usr/src/asterisk-22.* ]] || \
-       [[ -L /usr/src/asterisk-22 ]] || \
-       [[ -d /usr/src/asterisk-22 ]]; then
+    info "Checking for existing Asterisk source..."
+    local found_old=false
+    if [[ -e /usr/src/asterisk-22-current.tar.gz ]]; then
+        info "  Found: /usr/src/asterisk-22-current.tar.gz"
+        found_old=true
+    fi
+    for dir in /usr/src/asterisk-22.*; do
+        if [[ -d "$dir" ]]; then
+            info "  Found: $dir"
+            found_old=true
+        fi
+    done
+    if [[ -L /usr/src/asterisk-22 ]]; then
+        info "  Found symlink: /usr/src/asterisk-22"
+        found_old=true
+    fi
+    if [[ -d /usr/src/asterisk-22 ]]; then
+        info "  Found directory: /usr/src/asterisk-22"
+        found_old=true
+    fi
+
+    if [[ "$found_old" == "true" ]]; then
         info "Cleaning up existing Asterisk source..."
         rm -f /usr/src/asterisk-22-current.tar.gz
         rm -rf /usr/src/asterisk-22.*
-        # Remove symlink or directory (force remove for safety)
         rm -rf /usr/src/asterisk-22
         info "Cleanup complete"
+    else
+        info "No existing Asterisk source found"
     fi
 
     mkdir -p "$ASTERISK_SRC_DIR"
