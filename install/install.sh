@@ -351,7 +351,8 @@ download_asterisk() {
 
     # Create symlink for easier access
     info "Creating symlink $ASTERISK_SRC_DIR -> $extracted_dir"
-    rm -f "$ASTERISK_SRC_DIR"
+    # Force remove anything at that path (file, symlink, or directory)
+    rm -rf "$ASTERISK_SRC_DIR"
     ln -sfn "$extracted_dir" "$ASTERISK_SRC_DIR"
     info "Symlink created: $(ls -ld "$ASTERISK_SRC_DIR" 2>/dev/null || echo "symlink at $ASTERISK_SRC_DIR")"
 
