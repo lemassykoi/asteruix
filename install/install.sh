@@ -258,7 +258,8 @@ install_system_packages() {
 
     # Asterisk sounds (G.722, ulaw, alaw prompts)
     local asterisk_sounds=(
-        asterisk-sounds-core
+        asterisk-core-sounds-en-g722
+        asterisk-core-sounds-fr-g722
     )
 
     # Python
@@ -506,6 +507,14 @@ set_asterisk_permissions() {
     mkdir -p /var/log/asterisk
     mkdir -p /var/run/asterisk
     mkdir -p /var/spool/asterisk/voicemail
+
+    # Create symlinks for system-installed sounds
+    info "Linking system sounds..."
+    if [[ -d /usr/share/asterisk/sounds ]] && [[ ! -L /var/lib/asterisk/sounds ]]; then
+        rm -rf /var/lib/asterisk/sounds
+        ln -s /usr/share/asterisk/sounds /var/lib/asterisk/sounds
+        info "Created symlink: /var/lib/asterisk/sounds -> /usr/share/asterisk/sounds"
+    fi
 
     # Set ownership
     info "Setting ownership to $ASTERISK_USER:$ASTERISK_GROUP..."
