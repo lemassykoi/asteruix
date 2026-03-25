@@ -3,15 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Asterisk WebUI{% endblock %}</title>
+  <title>{% block title %}AsterUIX{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   {% block head %}{% endblock %}
 </head>
 <body>
   <nav class="navbar">
-    <div class="navbar-brand">Asterisk WebUI</div>
+    <a href="{{ url_for('system.dashboard') }}" class="navbar-brand">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 4V2m0 20v-2M4 12H2m20 0h-2M6.34 6.34L4.93 4.93m14.14 14.14l-1.41-1.41M6.34 17.66l-1.41 1.41m14.14-14.14l-1.41 1.41" stroke="currentColor" stroke-width="2" fill="none"/>
+      </svg>
+      AsterUIX
+    </a>
     <ul class="navbar-nav">
-      <li><a href="{{ url_for('system.dashboard') }}">Dashboard</a></li>
       <li class="nav-dropdown">
         <span class="nav-dropdown-toggle" tabindex="0">Telephony ▾</span>
         <ul class="nav-dropdown-menu">
@@ -51,14 +60,26 @@
         </ul>
       </li>
     </ul>
-    {% if session.get('username') %}
-    <ul class="navbar-nav" style="margin-left:auto">
-      <li><span style="color:#adb5bd">{{ session['username'] }}</span></li>
+    <ul class="navbar-nav" style="margin-left:auto;align-items:center">
+      <li>
+        <button id="theme-toggle" class="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
+          <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+          </svg>
+        </button>
+      </li>
+      {% if session.get('username') %}
+      <li><span style="color:var(--color-navbar-text)">{{ session['username'] }}</span></li>
       <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
+      {% endif %}
     </ul>
-    {% endif %}
   </nav>
   <main class="container {% block container_class %}{% endblock %}">
+    {% block breadcrumbs %}{% endblock %}
     {% block content %}{% endblock %}
   </main>
   <footer class="footer">
@@ -66,6 +87,7 @@
   </footer>
   <div id="toast-container"></div>
   <script>
+  // Toast notifications
   (function(){
     document.querySelectorAll('.alert').forEach(function(el){
       var toast = document.createElement('div');
@@ -75,6 +97,34 @@
       el.remove();
       setTimeout(function(){ toast.classList.add('toast-hide'); }, 4500);
       setTimeout(function(){ toast.remove(); }, 5000);
+    });
+  })();
+
+  // Dark mode toggle
+  (function(){
+    var toggle = document.getElementById('theme-toggle');
+    if (!toggle) return;
+
+    // Check for saved theme preference or default to system preference
+    var savedTheme = localStorage.getItem('theme');
+    var systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+
+    toggle.addEventListener('click', function() {
+      var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      var newTheme = isDark ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+    });
+
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+      if (!localStorage.getItem('theme')) {
+        document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+      }
     });
   })();
   </script>

@@ -1,6 +1,15 @@
 {% extends "base.html" %}
-{% block title %}Music on Hold — Asterisk WebUI{% endblock %}
+{% block title %}Music on Hold — AsterUIX{% endblock %}
 {% block container_class %}container-wide{% endblock %}
+{% block breadcrumbs %}
+<nav class="breadcrumb">
+  <a href="{{ url_for('system.dashboard') }}">Home</a>
+  <span class="separator">/</span>
+  <a href="{{ url_for('system.dashboard') }}">Media</a>
+  <span class="separator">/</span>
+  <span class="current">Music on Hold</span>
+</nav>
+{% endblock %}
 {% block content %}
 <div class="page-header">
   <h1>Music on Hold</h1>

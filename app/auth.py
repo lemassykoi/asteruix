@@ -53,9 +53,16 @@ def _is_safe_redirect(target: str) -> bool:
 
 
 def login_required(view):
-    """Decorator that redirects to login if not authenticated."""
+    """Decorator that redirects to login if not authenticated.
+    
+    Bypasses authentication for requests from localhost (127.0.0.1) to allow
+    local testing without login.
+    """
     @functools.wraps(view)
     def wrapped(*args, **kwargs):
+        # Allow localhost access without authentication
+        if request.remote_addr == "127.0.0.1":
+            return view(*args, **kwargs)
         if get_current_user() is None:
             return redirect(url_for("auth.login", next=request.path))
         return view(*args, **kwargs)

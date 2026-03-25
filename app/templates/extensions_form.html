@@ -1,5 +1,14 @@
 {% extends "base.html" %}
-{% block title %}{{ "New Extension" if is_new else "Edit " + ext.ext }} — Asterisk WebUI{% endblock %}
+{% block title %}{{ "New Extension" if is_new else "Edit " + ext.ext }} — AsterUIX{% endblock %}
+{% block breadcrumbs %}
+<nav class="breadcrumb">
+  <a href="{{ url_for('system.dashboard') }}">Home</a>
+  <span class="separator">/</span>
+  <a href="{{ url_for('extensions.ui_list') }}">Extensions</a>
+  <span class="separator">/</span>
+  <span class="current">{{ "New Extension" if is_new else "Edit " + ext.ext }}</span>
+</nav>
+{% endblock %}
 {% block content %}
 <h1>{{ "New Extension" if is_new else "Edit Extension " + ext.ext }}</h1>
 
@@ -114,7 +123,7 @@
     <button type="submit" class="btn btn-primary">
       {{ "Create Extension" if is_new else "Save Changes" }}
     </button>
-    <a href="{{ url_for('extensions.ui_list') }}" class="btn">Cancel</a>
+    <a href="{{ url_for('extensions.ui_list') }}" class="btn btn-cancel">Cancel</a>
   </div>
 </form>
 {% endblock %}

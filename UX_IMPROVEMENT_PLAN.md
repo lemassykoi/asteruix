@@ -1,131 +1,513 @@
-# UX Improvement Plan: Asterisk WebUI
+# UX/UI Visual Improvement Plan
 
-Revised plan based on review of the Jules draft. Prioritizes practical, high-impact
-changes that respect the project's constraints: vanilla JS/CSS stack, SOHO PBX with
-4 extensions, LAN-only access, server-side rendered Flask/Jinja2.
+**Goal:** Transform the AsterUIX from functional to beautiful — modern, polished, professional.
 
 ---
 
-## Current Pain Points (Priority Order)
+## Current Visual Issues
 
-1. **Navigation overflow** — 18 top-bar links that wrap on most screens. This is the #1 usability issue.
-2. **No inline audio playback** — MoH tracks and announcements open in a new tab.
-3. **Inconsistent page widths** — some pages use `container` (960px), others `container-wide` (1400px).
-4. **Missing confirmation on destructive actions** — some delete buttons have no confirmation.
-5. **Flash messages are basic** — standard page-top alerts, no auto-dismiss.
-6. **No audit log UI** — audit data exists (API + file) but has no browseable page.
-7. **Empty states are bare** — blank pages when no data exists, no guidance for new users.
-
----
-
-## Phase 1: Quick Wins (Low effort, high impact)
-
-### 1.1 — Grouped Navigation
-Replace the flat 18-link top bar with categorized dropdown groups:
-
-| Group         | Items                                              |
-|---------------|----------------------------------------------------|
-| **Telephony** | Extensions, Trunks, Ring Groups, Conference         |
-| **Routing**   | Inbound, Outbound, Time Groups, Holidays, Spam, IVR |
-| **Media**     | MoH, Announcements, Voicemail                      |
-| **System**    | Dashboard, Call Logs, Dialplan, Backups, Settings   |
-
-Implementation: CSS-only dropdown menus (`:hover` / `:focus-within`), no JS needed.
-
-### 1.2 — Inline Audio Player
-Replace "Play in new tab" links with a native `<audio controls>` element.
-Applies to: MoH track list, Announcements list, Voicemail messages.
-No library needed — HTML5 `<audio>` with browser-native controls.
-
-### 1.3 — Toast Notifications
-Replace static `.alert` flash messages with floating toasts that auto-dismiss after 5s.
-Implementation: small vanilla JS snippet (~30 lines) + CSS positioning/animation.
-
-### 1.4 — Standardize Page Widths
-- Forms/detail pages: `max-width: 720px` (current `form-card` is 640px — keep)
-- List/table pages: `max-width: 1200px` (standardize on `container-wide`)
-- Dashboard: `max-width: 1200px` (already done)
-
-### 1.5 — Confirm Destructive Actions
-Add `onclick="return confirm('...')"` to all delete buttons/forms that lack it.
-No library needed.
+1. **Dated color palette** — Bootstrap defaults (#0d6efd, #343a40), grey-heavy
+2. **Plain dashboard cards** — No icons, no visual hierarchy, flat stats
+3. **Basic navbar** — Dark grey bar, no branding, no visual depth
+4. **Tables lack polish** — No rounded corners, basic borders, no subtle shadows
+5. **Typography is generic** — System fonts, no visual personality
+6. **No micro-interactions** — Buttons, links, cards lack hover/active states
+7. **Flat badges** — No visual distinction beyond color
 
 ---
 
-## Phase 2: Functional Improvements (Medium effort)
+## Phase 1: Foundation — Modern Color Palette & Typography
 
-### 2.1 — Audit Log Page
-New page at `/audit` showing recent audit entries from `audit_log` table.
-Columns: timestamp, user, action, target, details.
-Paginated (reuse call logs pagination pattern). Filter by action type.
+### 1.1 Color Palette
 
-### 2.2 — Empty States with CTAs
-When a list page has zero items, show a centered message with icon and
-a "Create your first X" button. Applies to: extensions, trunks, ring groups,
-MoH classes, announcements, time groups, outbound routes.
+Replace Bootstrap greys with a refined, cohesive palette:
 
-### 2.3 — Bulk Actions for Spam Prefixes
-Already has bulk import. Add:
-- Select-all checkbox in table header
-- Per-row checkboxes
-- "Delete selected" button
-Vanilla JS, ~40 lines.
+```css
+/* Primary brand */
+--color-primary: #6366f1;        /* indigo-500 */
+--color-primary-hover: #4f46e5;  /* indigo-600 */
 
-### 2.4 — Form UX Polish
-- Add `placeholder` text to inputs where helpful (e.g., extension number, SIP password)
-- Add `<small class="form-help">` hints below complex fields
-- Group related fields with `<fieldset>` + `<legend>` on larger forms (trunks, inbound routes)
+/* Surface colors */
+--color-bg: #f1f5f9;             /* slate-100 */
+--color-surface: #ffffff;
+--color-surface-alt: #f8fafc;    /* slate-50 */
 
----
+/* Text colors */
+--color-text: #0f172a;           /* slate-900 */
+--color-text-muted: #64748b;     /* slate-500 */
 
-## Phase 3: Nice-to-Have (Lower priority)
+/* Navbar */
+--color-navbar-bg: #1e1b4b;      /* indigo-950 */
+--color-navbar-text: #e0e7ff;    /* indigo-100 */
 
-### 3.1 — Color Palette Refresh
-Soften the current Bootstrap-grey palette:
-- Navbar: `#1e293b` (slate-800) instead of `#343a40`
-- Primary: `#4f46e5` (indigo-600) instead of `#0d6efd`
-- Success: `#059669` (emerald-600)
-- Keep light background `#f8fafc`
+/* Status colors */
+--color-success: #10b981;        /* emerald-500 */
+--color-success-bg: #d1fae5;     /* emerald-100 */
+--color-danger: #ef4444;         /* red-500 */
+--color-danger-bg: #fee2e2;      /* red-100 */
+--color-warning: #f59e0b;        /* amber-500 */
+--color-warning-bg: #fef3c7;     /* amber-100 */
+--color-info: #3b82f6;           /* blue-500 */
+--color-info-bg: #dbeafe;        /* blue-100 */
 
-### 3.2 — Card-Style List Items
-For pages with few items (extensions, trunks, ring groups), offer a card
-layout alternative to the table. Each card shows key info at a glance
-(extension number, status badge, registered device count).
+/* Borders */
+--color-border: #e2e8f0;         /* slate-200 */
+```
 
-### 3.3 — Dashboard Stat Improvements
-- Add sparkline-style indicators for call volume (last 24h from CDR)
-- Show trunk registration status alongside endpoints
-- Uptime as human-readable duration (already done, verify formatting)
+### 1.2 Typography
 
-### 3.4 — Keyboard Shortcut for Search
-Add a simple text filter (client-side) on list pages. Type to filter
-visible table rows. No command palette needed — just an input field
-above each table.
+Add Google Fonts for visual personality:
 
----
+```html
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+```
 
-## Rejected from Jules Draft
+```css
+body {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9375rem;  /* 15px */
+  line-height: 1.6;
+  color: var(--color-text);
+}
 
-| Suggestion | Reason |
-|------------|--------|
-| Collapsible sidebar | Doesn't solve the problem — grouped nav is better |
-| WebSockets/SSE for dashboard | Overkill for 4-extension SOHO PBX; 3s polling is fine |
-| HTMX / SPA transitions | Adds dependency to zero-dep vanilla stack; pages render in <50ms |
-| Waveform visualization | Nobody needs waveforms for hold music management |
-| Interactive drag-and-drop flow editor | The inbound flow is fixed (spam→holiday→time→open/closed) |
-| Dark mode | Nice-to-have at best, not a UX problem |
-| Mobile/responsive | App runs on 127.0.0.1:8081, accessed from LAN desktop |
-| Command palette (Ctrl+K) | Overkill for 18 nav items; grouping solves discoverability |
-| WCAG compliance | Not a public-facing application |
-| Skeleton screens | Server-side rendering is <50ms, no perceived loading |
-| Breadcrumbs | Depth is max 2 levels; grouped nav provides sufficient context |
+code, .monospace {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8125rem;  /* 13px */
+}
+
+h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.02em; }
+h2 { font-size: 1.125rem; font-weight: 600; letter-spacing: -0.01em; }
+```
 
 ---
 
-## Implementation Notes
+## Phase 2: Dashboard Redesign
 
-- All changes are CSS + vanilla JS only — no new dependencies
-- Each phase can be implemented independently
-- Phase 1 items can be done in a single session
-- Test with `python -m pytest tests/ -v` after each change
-- Verify Asterisk WebUI service still runs: `curl http://127.0.0.1:8081/health`
+### 2.1 Stat Cards with Icons & Visual Hierarchy
+
+**Current:** Plain cards with text header + stat.
+
+**New design:**
+```
+┌─────────────────────────┐
+│ 📞  Extensions          │  ← Icon + label row
+│                         │
+│    4 / 5                │  ← Large stat with color
+│    registered           │  ← Muted subtext
+│                         │
+│  ████████░░  80%        │  ← Optional progress bar
+└─────────────────────────┘
+```
+
+**CSS:**
+```css
+.stat-card {
+  background: var(--color-surface);
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border: 1px solid var(--color-border);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.stat-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.stat-card-icon.primary { background: var(--color-info-bg); }
+.stat-card-icon.success { background: var(--color-success-bg); }
+.stat-card-icon.danger { background: var(--color-danger-bg); }
+.stat-card-icon.warning { background: var(--color-warning-bg); }
+
+.stat-card-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.stat-card-label {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-top: 0.25rem;
+}
+```
+
+### 2.2 Active Calls Section — Visual Priority
+
+When calls are active, make it **visually prominent**:
+
+```css
+.active-calls-alert {
+  background: linear-gradient(135deg, #fee2e2 0%, #fef3c7 100%);
+  border: 1px solid #fca5a5;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.active-calls-alert::before {
+  content: "🔴";
+  font-size: 1.25rem;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+```
+
+### 2.3 Endpoint Table — Card-Style Rows
+
+Transform table rows into card-like items:
+
+```css
+.table-modern {
+  background: var(--color-surface);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border: none;
+}
+
+.table-modern thead th {
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table-modern tbody td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.table-modern tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table-modern tbody tr:hover {
+  background: var(--color-surface-alt);
+}
+```
+
+---
+
+## Phase 3: Navigation & Layout
+
+### 3.1 Refined Navbar
+
+**Current:** Flat dark bar.
+
+**New design:** Subtle gradient, better spacing, visual depth.
+
+```css
+.navbar {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+  padding: 0.75rem 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  gap: 2.5rem;
+}
+
+.navbar-brand {
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.navbar-brand::before {
+  content: "☎️";
+  font-size: 1.25rem;
+}
+
+.navbar-nav a {
+  color: #c7d2fe;  /* indigo-200 */
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.navbar-nav a:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+```
+
+### 3.2 Page Headers with Breadcrumbs
+
+```html
+<div class="page-header">
+  <div>
+    <nav class="breadcrumb">
+      <a href="/">Home</a> / 
+      <span class="current">Extensions</span>
+    </nav>
+    <h1>Extensions</h1>
+  </div>
+  <a href="/extensions/new" class="btn btn-primary">+ New Extension</a>
+</div>
+```
+
+```css
+.breadcrumb {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.breadcrumb a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+```
+
+---
+
+## Phase 4: Forms & Inputs
+
+### 4.1 Modern Form Styling
+
+```css
+.form-control {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.9375rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.form-card {
+  background: var(--color-surface);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  border: 1px solid var(--color-border);
+  padding: 1.5rem;
+}
+```
+
+### 4.2 Button Refinements
+
+```css
+.btn {
+  border-radius: 8px;
+  padding: 0.5625rem 1.125rem;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  transition: all 0.15s;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+}
+
+.btn-danger {
+  background: var(--color-danger);
+  color: #fff;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+```
+
+---
+
+## Phase 5: Status Badges & Indicators
+
+### 5.1 Refined Badges
+
+```css
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;  /* Pill shape */
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.badge-ok {
+  background: var(--color-success-bg);
+  color: #065f46;  /* emerald-800 */
+}
+
+.badge-ok::before {
+  content: "✓";
+  font-size: 0.625rem;
+}
+
+.badge-off {
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+}
+
+.badge-off::before {
+  content: "○";
+  font-size: 0.5rem;
+}
+```
+
+---
+
+## Phase 6: Micro-interactions & Polish
+
+### 6.1 Hover Effects
+
+```css
+/* Cards lift on hover */
+.card, .stat-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card:hover, .stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+/* Button press effect */
+.btn:active {
+  transform: translateY(0);
+}
+
+/* Link underline animation */
+.navbar-nav a {
+  position: relative;
+}
+
+.navbar-nav a::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: currentColor;
+  transition: width 0.2s, left 0.2s;
+}
+
+.navbar-nav a:hover::after {
+  width: 80%;
+  left: 10%;
+}
+```
+
+### 6.2 Loading States
+
+```css
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #e2e8f0 25%,
+    #f1f5f9 50%,
+    #e2e8f0 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+```
+
+---
+
+## Phase 7: Dark Mode (Optional)
+
+```css
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0f172a;
+    --color-surface: #1e293b;
+    --color-surface-alt: #334155;
+    --color-text: #f1f5f9;
+    --color-text-muted: #94a3b8;
+    --color-border: #475569;
+  }
+}
+```
+
+---
+
+## Implementation Order
+
+| Priority | Task | Files | Time |
+|----------|------|-------|------|
+| 1 | Color palette + typography | `style.css`, `base.html` | 30 min |
+| 2 | Dashboard stat cards | `dashboard.html`, `style.css` | 1 hr |
+| 3 | Navbar refinement | `base.html`, `style.css` | 30 min |
+| 4 | Table modernization | `style.css`, all `*_list.html` | 1 hr |
+| 5 | Form styling | `style.css`, all `*_form.html` | 45 min |
+| 6 | Badges + buttons | `style.css` | 30 min |
+| 7 | Micro-interactions | `style.css` | 30 min |
+
+**Total:** ~4.5 hours for complete visual refresh
+
+---
+
+## Visual References
+
+- **Inspiration:** Linear.app, Vercel Dashboard, Modern SaaS aesthetics
+- **Principles:** Subtle shadows, rounded corners, generous whitespace, refined colors
+- **Avoid:** Gradients on buttons, heavy borders, pure black, visual clutter
+
+---
+
+## Notes
+
+- Keep all changes CSS-only (no JS framework dependencies)
+- Maintain existing functionality — this is visual polish only
+- Test on LAN desktop browser (no mobile optimization needed)
+- Preserve SSR pattern — no SPA transitions

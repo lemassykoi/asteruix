@@ -1,6 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — Asterisk WebUI{% endblock %}
+{% block title %}Dashboard — AsterUIX{% endblock %}
 {% block container_class %}container-wide{% endblock %}
+{% block breadcrumbs %}
+<nav class="breadcrumb">
+  <a href="{{ url_for('system.dashboard') }}">Home</a>
+  <span class="separator">/</span>
+  <span class="current">Dashboard</span>
+</nav>
+{% endblock %}
 {% block content %}
 <h1>Dashboard</h1>
 
@@ -8,63 +15,105 @@
 <div class="alert alert-danger">{{ error }}</div>
 {% endif %}
 
+{# --- Active Calls Alert --- #}
+<div id="active-calls-alert" style="display: none;">
+  <div class="active-calls-banner">
+    <span class="active-calls-icon">🔴</span>
+    <span class="active-calls-text"><strong id="active-call-count">0</strong> active call<span id="active-call-plural">s</span> in progress</span>
+  </div>
+</div>
+
 <div class="card-grid">
 
   {# --- Asterisk Version --- #}
-  <div class="card">
-    <div class="card-header">Asterisk</div>
-    <div class="card-body">
+  <div class="stat-card">
+    <div class="stat-card-icon primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 1v6m0 6v6M1 12h6m6 0h6"/>
+      </svg>
+    </div>
+    <div class="stat-card-body">
       {% if version %}
-      <div class="stat-value">{{ version.version }}</div>
-      <div class="stat-label">Built {{ version.build_date }}</div>
+      <div class="stat-card-value">{{ version.version }}</div>
+      <div class="stat-card-label">Built {{ version.build_date }}</div>
       {% else %}
-      <div class="stat-value text-muted">—</div>
+      <div class="stat-card-value text-muted">—</div>
+      <div class="stat-card-label">Version unavailable</div>
       {% endif %}
     </div>
   </div>
 
   {# --- Server Uptime --- #}
-  <div class="card">
-    <div class="card-header">Server</div>
-    <div class="card-body">
-      <div class="stat-value" id="server-uptime">{{ server_uptime }}</div>
-      <div class="stat-label">machine uptime</div>
+  <div class="stat-card">
+    <div class="stat-card-icon success">
+      <!-- Server icon from Heroicons -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+        <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+        <line x1="6" y1="6" x2="6.01" y2="6"/>
+        <line x1="6" y1="18" x2="6.01" y2="18"/>
+      </svg>
+    </div>
+    <div class="stat-card-body">
+      <div class="stat-card-value" id="server-uptime">{{ server_uptime }}</div>
+      <div class="stat-card-label">Server uptime</div>
     </div>
   </div>
 
   {# --- Asterisk Uptime --- #}
-  <div class="card">
-    <div class="card-header">Asterisk Service</div>
-    <div class="card-body">
-      <div class="stat-value" id="ast-uptime">{{ ast_uptime }}</div>
-      <div class="stat-label" id="ast-reload">reload: {{ ast_reload }}</div>
+  <div class="stat-card">
+    <div class="stat-card-icon info">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18.36 6.64a9 9 0 11-12.73 0"/>
+        <line x1="12" y1="2" x2="12" y2="12"/>
+      </svg>
+    </div>
+    <div class="stat-card-body">
+      <div class="stat-card-value" id="ast-uptime">{{ ast_uptime }}</div>
+      <div class="stat-card-label" id="ast-reload">Reload: {{ ast_reload }}</div>
     </div>
   </div>
 
   {# --- Registrations --- #}
-  <div class="card">
-    <div class="card-header">Endpoints</div>
-    <div class="card-body">
-      <div class="stat-value" id="ep-count">{{ registered_count }} / {{ total_count }}</div>
-      <div class="stat-label">registered</div>
+  <div class="stat-card">
+    <div class="stat-card-icon warning">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+      </svg>
+    </div>
+    <div class="stat-card-body">
+      <div class="stat-card-value" id="ep-count">{{ registered_count }} / {{ total_count }}</div>
+      <div class="stat-card-label">Endpoints registered</div>
     </div>
   </div>
 
   {# --- Active Calls --- #}
-  <div class="card">
-    <div class="card-header">Active Calls</div>
-    <div class="card-body">
-      <div class="stat-value" id="call-count">{{ call_count }}</div>
-      <div class="stat-label">channels</div>
+  <div class="stat-card">
+    <div class="stat-card-icon danger">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
+      </svg>
+    </div>
+    <div class="stat-card-body">
+      <div class="stat-card-value" id="call-count">{{ call_count }}</div>
+      <div class="stat-card-label">Active channels</div>
     </div>
   </div>
 
   {# --- Fail2ban --- #}
-  <div class="card">
-    <div class="card-header">Fail2ban</div>
-    <div class="card-body">
-      <div class="stat-value" id="f2b-banned">{{ fail2ban.currently_banned }} banned</div>
-      <div class="stat-label" id="f2b-failed">{{ fail2ban.currently_failed }} currently failed</div>
+  <div class="stat-card">
+    <div class="stat-card-icon danger">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        <path d="M12 8v4M12 16h.01"/>
+      </svg>
+    </div>
+    <div class="stat-card-body">
+      <div class="stat-card-value" id="f2b-banned">{{ fail2ban.currently_banned }}</div>
+      <div class="stat-card-label">Banned IPs (Fail2ban)</div>
     </div>
   </div>
 
@@ -76,7 +125,7 @@
   <thead>
     <tr>
       <th>Extension</th>
-      <th>State</th>
+      <th>Status</th>
       <th>Contact</th>
       <th>RTT</th>
     </tr>
@@ -84,11 +133,19 @@
   <tbody id="ep-tbody">
     {% for ep in endpoints %}
     <tr>
-      <td>{{ ep.name }}</td>
+      <td><strong>{{ ep.name }}</strong></td>
       <td>
-        <span class="badge {% if ep.contacts %}badge-ok{% else %}badge-off{% endif %}">
-          {{ ep.state }}
-        </span>
+        {% if ep.contacts %}
+          <span class="status-badge registered">
+            <span class="status-indicator"></span>
+            Registered
+          </span>
+        {% else %}
+          <span class="status-badge unregistered">
+            <span class="status-indicator"></span>
+            Unregistered
+          </span>
+        {% endif %}
       </td>
       <td>
         {% for c in ep.contacts %}
@@ -99,7 +156,11 @@
       </td>
       <td>
         {% for c in ep.contacts %}
-          {% if c.rtt_ms is not none %}{{ "%.1f"|format(c.rtt_ms) }} ms{% endif %}
+          {% if c.rtt_ms is not none %}
+            <span class="{% if c.rtt_ms < 50 %}latency-good{% elif c.rtt_ms < 150 %}latency-medium{% else %}latency-poor{% endif %}">
+              {{ "%.1f"|format(c.rtt_ms) }} ms
+            </span>
+          {% endif %}
           {% if not loop.last %}<br>{% endif %}
         {% else %}
           <span class="text-muted">—</span>
@@ -173,16 +234,22 @@
       eps.forEach(function(ep) {
         var hasContact = ep.contacts && ep.contacts.length > 0;
         if (hasContact) reg++;
-        var badgeClass = hasContact ? 'badge-ok' : 'badge-off';
+        var statusBadge = hasContact
+          ? '<span class="status-badge registered"><span class="status-indicator"></span>Registered</span>'
+          : '<span class="status-badge unregistered"><span class="status-indicator"></span>Unregistered</span>';
         var contacts = hasContact
           ? ep.contacts.map(function(c){ return esc(c.uri); }).join('<br>')
           : '<span class="text-muted">—</span>';
         var rtts = hasContact
-          ? ep.contacts.map(function(c){ return c.rtt_ms !== null ? c.rtt_ms.toFixed(1) + ' ms' : ''; }).join('<br>')
+          ? ep.contacts.map(function(c) {
+              if (c.rtt_ms === null) return '<span class="text-muted">—</span>';
+              var latencyClass = c.rtt_ms < 50 ? 'latency-good' : (c.rtt_ms < 150 ? 'latency-medium' : 'latency-poor');
+              return '<span class="' + latencyClass + '">' + c.rtt_ms.toFixed(1) + ' ms</span>';
+            }).join('<br>')
           : '<span class="text-muted">—</span>';
         rows += '<tr>'
           + '<td>' + esc(ep.name) + '</td>'
-          + '<td><span class="badge ' + badgeClass + '">' + esc(ep.state) + '</span></td>'
+          + '<td>' + statusBadge + '</td>'
           + '<td>' + contacts + '</td>'
           + '<td>' + rtts + '</td>'
           + '</tr>';
@@ -193,9 +260,25 @@
 
     // Active calls
     fetch('/api/v1/system/calls').then(function(r){ return r.json(); }).then(function(chs) {
-      document.getElementById('call-count').textContent = chs.length;
+      var count = chs.length;
+      document.getElementById('call-count').textContent = count;
+      
+      // Update active calls alert
+      var alertEl = document.getElementById('active-calls-alert');
+      var countEl = document.getElementById('active-call-count');
+      var pluralEl = document.getElementById('active-call-plural');
+      
+      if (count > 0) {
+        countEl.textContent = count;
+        pluralEl.style.display = count === 1 ? 'none' : 'inline';
+        alertEl.style.display = 'block';
+      } else {
+        alertEl.style.display = 'none';
+      }
+      
+      // Update channels section
       var sec = document.getElementById('channels-section');
-      if (chs.length === 0) {
+      if (count === 0) {
         sec.innerHTML = '';
         return;
       }
@@ -223,14 +306,12 @@
       }
       if (st.uptime && !st.uptime.error) {
         document.getElementById('ast-uptime').textContent = st.uptime.system_uptime;
-        document.getElementById('ast-reload').textContent = 'reload: ' + st.uptime.last_reload;
+        document.getElementById('ast-reload').textContent = 'Reload: ' + st.uptime.last_reload;
       }
       if (st.fail2ban) {
         var b = st.fail2ban;
         var el = document.getElementById('f2b-banned');
-        el.textContent = b.currently_banned + ' banned';
-        el.className = 'stat-value' + (b.currently_banned > 0 ? ' text-danger' : '');
-        document.getElementById('f2b-failed').textContent = b.currently_failed + ' currently failed';
+        el.textContent = b.currently_banned;
         var bsec = document.getElementById('banned-section');
         if (b.banned_ips && b.banned_ips.length > 0) {
           bsec.innerHTML = '<h2>Banned IPs</h2><ul class="banned-list">'

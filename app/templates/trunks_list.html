@@ -1,6 +1,15 @@
 {% extends "base.html" %}
-{% block title %}Trunks — Asterisk WebUI{% endblock %}
+{% block title %}Trunks — AsterUIX{% endblock %}
 {% block container_class %}container-wide{% endblock %}
+{% block breadcrumbs %}
+<nav class="breadcrumb">
+  <a href="{{ url_for('system.dashboard') }}">Home</a>
+  <span class="separator">/</span>
+  <a href="{{ url_for('system.dashboard') }}">Telephony</a>
+  <span class="separator">/</span>
+  <span class="current">Trunks</span>
+</nav>
+{% endblock %}
 {% block content %}
 <div class="page-header">
   <h1>Trunks</h1>

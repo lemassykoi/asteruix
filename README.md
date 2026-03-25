@@ -1,4 +1,4 @@
-# Asterisk WebUI
+# AsterUIX
 
 A lightweight web interface for managing an Asterisk 22 LTS PBX, built with Flask. No FreePBX/VitalPBX — pure Asterisk with a minimal, purpose-built management layer.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI management commands for Asterisk WebUI."""
+"""CLI management commands for AsterUIX."""
 
 import argparse
 import getpass
@@ -426,7 +426,7 @@ def import_conference(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Asterisk WebUI management")
+    parser = argparse.ArgumentParser(description="AsterUIX management")
     sub = parser.add_subparsers(dest="command")
 
     p_admin = sub.add_parser("create-admin", help="Create or reset an admin account")

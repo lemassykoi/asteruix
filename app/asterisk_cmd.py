@@ -384,11 +384,28 @@ def get_server_uptime() -> str:
         result = subprocess.run(
             ["uptime", "-p"],
             capture_output=True, text=True, timeout=5,
+            check=True,
         )
         raw = result.stdout.strip().removeprefix("up ")
-        return abbreviate_uptime(raw)
+        if raw:
+            return abbreviate_uptime(raw)
+    except (FileNotFoundError, subprocess.TimeoutExpired, subprocess.CalledProcessError):
+        pass
+    
+    # Fallback: parse standard uptime output
+    try:
+        result = subprocess.run(
+            ["uptime"],
+            capture_output=True, text=True, timeout=5,
+        )
+        # Format: " 01:23:45 up 1 day,  2:34,  1 user,  load average: ..."
+        parts = result.stdout.strip().split(",")[0].split("up ")
+        if len(parts) > 1:
+            return abbreviate_uptime(parts[1].strip())
     except (FileNotFoundError, subprocess.TimeoutExpired):
-        return "—"
+        pass
+    
+    return "—"
 
 
 def get_fail2ban_status(jail: str = "asterisk") -> Fail2banStatus:
