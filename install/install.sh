@@ -484,8 +484,8 @@ set_asterisk_permissions() {
 
     info "Asterisk permissions configured"
     info "Directory permissions:"
-    ls -la /etc/asterisk 2>&1 | head -3 | while read line; do info "  $line"; done
-    ls -la /var/lib/asterisk 2>&1 | head -3 | while read line; do info "  $line"; done
+    ls -la /etc/asterisk 2>&1 | head -3 || true
+    ls -la /var/lib/asterisk 2>&1 | head -3 || true
 }
 
 # =============================================================================
