@@ -210,6 +210,7 @@ install_system_packages() {
         curl
         wget
         doxygen
+        graphviz
     )
 
     # Asterisk dependencies
@@ -476,9 +477,10 @@ install_asterisk() {
         info "Existing Asterisk configuration preserved"
     fi
 
-    # Generate program documentation
+    # Generate program documentation (optional, may produce warnings)
     info "Generating program documentation..."
-    make progdocs
+    make progdocs 2>&1 | grep -v "warning:" | grep -v "dot:" | head -5 || true
+    info "Documentation generation complete"
 
     info "Asterisk installed successfully"
 }
