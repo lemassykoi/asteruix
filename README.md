@@ -56,7 +56,7 @@ A lightweight web interface for managing an Asterisk 22 LTS PBX, built with Flas
 
 ```bash
 # Clone
-git clone https://github.com/lemassykoi/asterisk-webui.git /opt/asterisk-webui
+git clone https://github.com/lemassykoi/asteruix.git /opt/asterisk-webui
 cd /opt/asterisk-webui
 
 # Python environment
