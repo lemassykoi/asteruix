@@ -2,6 +2,12 @@
 
 A lightweight web interface for managing an Asterisk 22 LTS PBX, built with Flask. No FreePBX/VitalPBX — pure Asterisk with a minimal, purpose-built management layer.
 
+## Screenshots
+
+| Light Theme | Dark Theme |
+|:-----------:|:----------:|
+| ![Light Theme](docs/screenshot-light.png) | ![Dark Theme](docs/screenshot-dark.png) |
+
 ## Features
 
 - **Dashboard** — Live system status with auto-refresh (3s polling): Asterisk version, server/service uptime, registered endpoints, active calls, Fail2ban bans
