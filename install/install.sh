@@ -70,9 +70,17 @@ die() {
 
 error_handler() {
     local line_no=$1
-    error "Script failed at line $line_no"
+    local exit_code=$?
+    error "Script failed at line $line_no with exit code $exit_code"
     error "Last command: $BASH_COMMAND"
     error "Check $LOG_FILE for details"
+    # Print last 20 lines of log for debugging
+    if [[ -f "$LOG_FILE" ]]; then
+        error "Last log entries:"
+        tail -20 "$LOG_FILE" | while read -r line; do
+            error "  $line"
+        done
+    fi
     exit 1
 }
 
@@ -302,19 +310,26 @@ download_asterisk() {
     # Extract if not already extracted
     local extracted_dir
     extracted_dir=$(tar -tzf "$asterisk_tarball" | head -1 | cut -d'/' -f1)
+    
+    info "Detected archive directory: $extracted_dir"
 
     if [[ ! -d "/usr/src/$extracted_dir" ]]; then
         info "Extracting Asterisk..."
         tar xzf "$asterisk_tarball"
-        # Create symlink for easier access
-        ln -sfn "$extracted_dir" "$ASTERISK_SRC_DIR"
-        info "Extracted Asterisk to /usr/src/$extracted_dir"
+        info "Extraction complete"
     else
         info "Asterisk source already extracted"
     fi
 
+    # Create symlink for easier access
+    if [[ ! -L "$ASTERISK_SRC_DIR" ]]; then
+        ln -sfn "$extracted_dir" "$ASTERISK_SRC_DIR"
+        info "Created symlink: $ASTERISK_SRC_DIR -> $extracted_dir"
+    fi
+
     cd "$ASTERISK_SRC_DIR"
     info "Asterisk source ready at $ASTERISK_SRC_DIR"
+    info "Current directory: $(pwd)"
 }
 
 configure_asterisk() {
