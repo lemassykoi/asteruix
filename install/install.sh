@@ -286,19 +286,17 @@ download_asterisk() {
 
     cd /usr/src
 
-    # Download latest Asterisk 22
-    local asterisk_tarball
-    asterisk_tarball=$(curl -s "https://downloads.asterisk.org/pub/telephony/asterisk/" | \
-        grep -oP 'asterisk-22\.[0-9]+\.[0-9]+\.tar\.gz' | head -1)
-
-    if [[ -z "$asterisk_tarball" ]]; then
-        # Fallback to current symlink
-        asterisk_tarball="asterisk-22-current.tar.gz"
-    fi
+    # Use the -current symlink for latest Asterisk 22
+    local asterisk_tarball="asterisk-22-current.tar.gz"
 
     if [[ ! -f "/usr/src/$asterisk_tarball" ]]; then
-        wget -q "https://downloads.asterisk.org/pub/telephony/asterisk/$asterisk_tarball" \
+        info "Downloading $asterisk_tarball..."
+        wget -q --show-progress \
+            "https://downloads.asterisk.org/pub/telephony/asterisk/$asterisk_tarball" \
             -O "$asterisk_tarball"
+        info "Download complete"
+    else
+        info "Asterisk tarball already exists"
     fi
 
     # Extract if not already extracted
@@ -306,6 +304,7 @@ download_asterisk() {
     extracted_dir=$(tar -tzf "$asterisk_tarball" | head -1 | cut -d'/' -f1)
 
     if [[ ! -d "/usr/src/$extracted_dir" ]]; then
+        info "Extracting Asterisk..."
         tar xzf "$asterisk_tarball"
         # Create symlink for easier access
         ln -sfn "$extracted_dir" "$ASTERISK_SRC_DIR"
