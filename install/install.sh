@@ -322,10 +322,21 @@ download_asterisk() {
     fi
     info "Tarball size: $(ls -lh "$asterisk_tarball" | awk '{print $5}')"
 
+    # Verify tarball integrity
+    if ! tar -tzf "$asterisk_tarball" >/dev/null 2>&1; then
+        die "Tarball is corrupted: $asterisk_tarball"
+    fi
+    info "Tarball integrity verified"
+
     # Extract if not already extracted
     local extracted_dir
     info "Reading tarball contents..."
-    extracted_dir=$(tar -tzf "$asterisk_tarball" | head -1 | cut -d'/' -f1)
+    # Use a subshell to avoid pipefail issues with head
+    extracted_dir=$(tar -tzf "$asterisk_tarball" 2>/dev/null | head -1 | cut -d'/' -f1) || true
+    
+    if [[ -z "$extracted_dir" ]]; then
+        die "Could not determine extracted directory name"
+    fi
     
     info "Detected archive directory: $extracted_dir"
 
