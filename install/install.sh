@@ -430,20 +430,22 @@ menuselect_codecs() {
 
     # Enable key codecs
     # codec_g729 (BCG729) - requires libbcg729-dev
+    info "Enabling codec_g729..."
     if menuselect/menuselect --enable codec_g729 menuselect.makeopts 2>&1; then
-        info "Enabled codec_g729 (G.729)"
+        info "  codec_g729: enabled"
     else
-        warn "codec_g729 enablement failed (may need BCG729)"
+        warn "  codec_g729: enablement failed (BCG729 dependency issue)"
     fi
 
     # codec_g722 is built-in by default in Asterisk 22, no menuselect needed
-    info "codec_g722 (G.722) is built-in by default"
+    info "  codec_g722: built-in (no menuselect needed)"
 
     # codec_opus
+    info "Enabling codec_opus..."
     if menuselect/menuselect --enable codec_opus menuselect.makeopts 2>&1; then
-        info "Enabled codec_opus (Opus)"
+        info "  codec_opus: enabled"
     else
-        warn "codec_opus enablement failed"
+        warn "  codec_opus: enablement failed"
     fi
 
     menuselect/menuselect --enable format_ogg_vorbis menuselect.makeopts 2>&1 || true
@@ -456,8 +458,8 @@ menuselect_codecs() {
     menuselect/menuselect --disable chan_unistim menuselect.makeopts 2>&1 || true
 
     info "Module selection configured"
-    info "Menuselect options:"
-    grep -E "codec_g729|codec_opus|codec_g722" menuselect.makeopts 2>/dev/null || true
+    info "Menuselect codec status:"
+    grep -E "codec_g729|codec_opus" menuselect.makeopts 2>/dev/null | head -5 || info "  (no codec entries found)"
 }
 
 compile_asterisk() {
@@ -474,6 +476,19 @@ compile_asterisk() {
         info "Asterisk compilation complete"
     else
         die "Asterisk compilation failed"
+    fi
+
+    # Check if codec modules were built
+    info "Checking compiled modules..."
+    if [[ -f "codecs/codec_g729.so" ]]; then
+        info "  codec_g729.so: built successfully"
+    else
+        warn "  codec_g729.so: NOT BUILT (BCG729 dependency issue)"
+    fi
+    if [[ -f "codecs/codec_opus.so" ]]; then
+        info "  codec_opus.so: built successfully"
+    else
+        warn "  codec_opus.so: NOT BUILT"
     fi
 }
 
@@ -569,6 +584,37 @@ EOF
             info "Added format_ogg_vorbis to modules.conf"
         fi
         # codec_g722 is built-in, no need to load
+    fi
+
+    # Verify codec modules were compiled
+    info "Checking compiled codec modules..."
+    local codec_dir="/usr/lib/asterisk/modules"
+    if [[ -f "$codec_dir/codec_g729.so" ]]; then
+        info "  codec_g729.so: present"
+    else
+        warn "  codec_g729.so: NOT FOUND (BCG729 may not be linked)"
+    fi
+    if [[ -f "$codec_dir/codec_opus.so" ]]; then
+        info "  codec_opus.so: present"
+    else
+        warn "  codec_opus.so: NOT FOUND"
+    fi
+    # codec_g722 is built-in, no .so file
+
+    info "modules.conf contents:"
+    grep -E "^load => codec" "$modules_conf" 2>/dev/null || info "  (no codec load directives)"
+}
+
+restart_asterisk_for_codecs() {
+    info "Restarting Asterisk to load codec modules..."
+    
+    systemctl restart asterisk
+    sleep 2
+    
+    if systemctl is-active --quiet asterisk; then
+        info "Asterisk restarted successfully"
+    else
+        warn "Asterisk failed to restart - check logs"
     fi
 }
 
@@ -1182,6 +1228,7 @@ main() {
     install_asterisk_service
     configure_asterisk_base
     start_asterisk
+    restart_asterisk_for_codecs
 
     info "Phase 4 completed successfully"
     echo ""
