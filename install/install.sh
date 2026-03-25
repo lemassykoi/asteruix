@@ -209,6 +209,7 @@ install_system_packages() {
         git
         curl
         wget
+        doxygen
     )
 
     # Asterisk dependencies
@@ -469,11 +470,15 @@ install_asterisk() {
     # Install sample configs (only if /etc/asterisk is empty)
     if [[ -z "$(ls -A /etc/asterisk 2>/dev/null)" ]]; then
         info "Installing sample configurations..."
-        make samples-config
+        make samples
         info "Sample configurations installed"
     else
         info "Existing Asterisk configuration preserved"
     fi
+
+    # Generate program documentation
+    info "Generating program documentation..."
+    make progdocs
 
     info "Asterisk installed successfully"
 }
