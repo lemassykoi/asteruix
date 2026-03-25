@@ -256,6 +256,11 @@ install_system_packages() {
         libsox-fmt-mp3
     )
 
+    # Asterisk sounds (G.722, ulaw, alaw prompts)
+    local asterisk_sounds=(
+        asterisk-sounds-core
+    )
+
     # Python
     local python_deps=(
         python3
@@ -275,6 +280,7 @@ install_system_packages() {
         "${asterisk_deps[@]}"
         "${bcg729_deps[@]}"
         "${audio_tools[@]}"
+        "${asterisk_sounds[@]}"
         "${python_deps[@]}"
         "${optional[@]}"
     )
@@ -428,27 +434,8 @@ menuselect_codecs() {
     info "Generating menuselect.makeopts..."
     make menuselect.makeopts
 
-    # Enable key codecs
-    # codec_g729 (BCG729) - requires libbcg729-dev
-    info "Enabling codec_g729..."
-    if menuselect/menuselect --enable codec_g729 menuselect.makeopts 2>&1; then
-        info "  codec_g729: enabled"
-    else
-        warn "  codec_g729: enablement failed (BCG729 dependency issue)"
-    fi
-
-    # codec_g722 is built-in by default in Asterisk 22, no menuselect needed
-    info "  codec_g722: built-in (no menuselect needed)"
-
-    # codec_opus
-    info "Enabling codec_opus..."
-    if menuselect/menuselect --enable codec_opus menuselect.makeopts 2>&1; then
-        info "  codec_opus: enabled"
-    else
-        warn "  codec_opus: enablement failed"
-    fi
-
-    menuselect/menuselect --enable format_ogg_vorbis menuselect.makeopts 2>&1 || true
+    # Note: Asterisk 22 has built-in codec support for G.722, G.729A, and Opus
+    # These are compiled into the core, not as separate modules
 
     # Disable unused channel drivers (reduces attack surface)
     menuselect/menuselect --disable chan_alsa menuselect.makeopts 2>&1 || true
@@ -458,8 +445,6 @@ menuselect_codecs() {
     menuselect/menuselect --disable chan_unistim menuselect.makeopts 2>&1 || true
 
     info "Module selection configured"
-    info "Menuselect codec status:"
-    grep -E "codec_g729|codec_opus" menuselect.makeopts 2>/dev/null | head -5 || info "  (no codec entries found)"
 }
 
 compile_asterisk() {
@@ -476,19 +461,6 @@ compile_asterisk() {
         info "Asterisk compilation complete"
     else
         die "Asterisk compilation failed"
-    fi
-
-    # Check if codec modules were built
-    info "Checking compiled modules..."
-    if [[ -f "codecs/codec_g729.so" ]]; then
-        info "  codec_g729.so: built successfully"
-    else
-        warn "  codec_g729.so: NOT BUILT (BCG729 dependency issue)"
-    fi
-    if [[ -f "codecs/codec_opus.so" ]]; then
-        info "  codec_opus.so: built successfully"
-    else
-        warn "  codec_opus.so: NOT BUILT"
     fi
 }
 
@@ -554,68 +526,23 @@ set_asterisk_permissions() {
 }
 
 configure_codec_modules() {
-    info "Configuring codec modules to load..."
+    info "Configuring codec modules..."
 
     local modules_conf="/etc/asterisk/modules.conf"
 
-    if [[ ! -f "$modules_conf" ]]; then
-        warn "modules.conf not found, creating..."
-        cat > "$modules_conf" << 'EOF'
-[modules]
-; Static loadable modules
-load => codec_g722.so
-load => codec_g729.so
-load => codec_opus.so
-load => format_ogg_vorbis.so
-EOF
-        info "Created modules.conf with codec modules"
-    else
-        # Add codec loading if not present
-        if ! grep -q "load => codec_g729" "$modules_conf"; then
-            echo "load => codec_g729.so" >> "$modules_conf"
-            info "Added codec_g729 to modules.conf"
-        fi
-        if ! grep -q "load => codec_opus" "$modules_conf"; then
-            echo "load => codec_opus.so" >> "$modules_conf"
-            info "Added codec_opus to modules.conf"
-        fi
-        if ! grep -q "load => format_ogg_vorbis" "$modules_conf"; then
-            echo "load => format_ogg_vorbis.so" >> "$modules_conf"
-            info "Added format_ogg_vorbis to modules.conf"
-        fi
-        # codec_g722 is built-in, no need to load
-    fi
+    # Note: Asterisk 22 has built-in codec support for G.722, G.729A, and Opus
+    # No additional module loading is required for these codecs
 
-    # Verify codec modules were compiled
-    info "Checking compiled codec modules..."
-    local codec_dir="/usr/lib/asterisk/modules"
-    if [[ -f "$codec_dir/codec_g729.so" ]]; then
-        info "  codec_g729.so: present"
-    else
-        warn "  codec_g729.so: NOT FOUND (BCG729 may not be linked)"
-    fi
-    if [[ -f "$codec_dir/codec_opus.so" ]]; then
-        info "  codec_opus.so: present"
-    else
-        warn "  codec_opus.so: NOT FOUND"
-    fi
-    # codec_g722 is built-in, no .so file
-
-    info "modules.conf contents:"
-    grep -E "^load => codec" "$modules_conf" 2>/dev/null || info "  (no codec load directives)"
+    info "Codecs in Asterisk 22 are built-in (no separate modules needed):"
+    info "  - codec_g722 (G.722)"
+    info "  - codec_g729 (G.729A)"
+    info "  - codec_opus (Opus)"
 }
 
 restart_asterisk_for_codecs() {
-    info "Restarting Asterisk to load codec modules..."
-    
-    systemctl restart asterisk
-    sleep 2
-    
-    if systemctl is-active --quiet asterisk; then
-        info "Asterisk restarted successfully"
-    else
-        warn "Asterisk failed to restart - check logs"
-    fi
+    # Codecs are built-in, no restart needed for codec loading
+    # This function kept for API compatibility
+    info "Codecs are built-in - no restart required"
 }
 
 # =============================================================================
@@ -1033,35 +960,29 @@ restore_backup() {
 # =============================================================================
 
 verify_codecs() {
-    info "Verifying codec modules..."
+    info "Verifying codec availability..."
 
     local codecs_ok=true
 
-    # Check codec_g729 (loadable module)
-    if asterisk -rx "module show like codec_g729" 2>/dev/null | grep -q "codec_g729"; then
-        info "  [OK] codec_g729 (G.729)"
+    # Check codec_g722 (built-in)
+    if asterisk -rx "core show codecs" 2>/dev/null | grep -qi "g722"; then
+        info "  [OK] codec_g722 (G.722) - built-in"
     else
-        warn "  [MISSING] codec_g729 (G.729) - check BCG729 library"
+        warn "  [MISSING] codec_g722 (G.722)"
         codecs_ok=false
     fi
 
-    # Check codec_g722 (built-in to core, not a module)
-    # Use translation table to verify it's available
-    if asterisk -rx "core show translation" 2>/dev/null | grep -q "G722"; then
-        info "  [OK] codec_g722 (G.722) - built-in"
+    # Check codec_g729 (built-in G.729A in Asterisk 22)
+    if asterisk -rx "core show codecs" 2>/dev/null | grep -qi "g729"; then
+        info "  [OK] codec_g729 (G.729) - built-in"
     else
-        # Fallback: check if g722 format is recognized
-        if asterisk -rx "core show codecs" 2>/dev/null | grep -qi "g722"; then
-            info "  [OK] codec_g722 (G.722) - built-in"
-        else
-            warn "  [MISSING] codec_g722 (G.722)"
-            codecs_ok=false
-        fi
+        warn "  [MISSING] codec_g729 (G.729)"
+        codecs_ok=false
     fi
 
-    # Check codec_opus (loadable module)
-    if asterisk -rx "module show like codec_opus" 2>/dev/null | grep -q "codec_opus"; then
-        info "  [OK] codec_opus (Opus)"
+    # Check codec_opus (built-in in Asterisk 22)
+    if asterisk -rx "core show codecs" 2>/dev/null | grep -qi "opus"; then
+        info "  [OK] codec_opus (Opus) - built-in"
     else
         warn "  [MISSING] codec_opus (Opus)"
         codecs_ok=false
@@ -1087,12 +1008,9 @@ print_summary() {
     echo "Asterisk: $version"
     echo ""
 
-    # Codec status - check both modules and built-in
+    # Codec status from core show codecs
     echo "Codecs:"
-    echo "  Loadable modules:"
-    asterisk -rx "module show like codec" 2>/dev/null | grep -E "g729|opus" | awk '{print "    - " $1 " (" $4 ")"}' || echo "    (none loaded)"
-    echo "  Built-in:"
-    echo "    - codec_g722 (G.722) - built into core"
+    asterisk -rx "core show codecs" 2>/dev/null | grep -E "g722|g729|opus" | awk '{print "  - " $2 " (" $4 ")"}'
     echo ""
 
     # WebUI URL
