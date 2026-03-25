@@ -973,8 +973,21 @@ verify_codecs() {
 
     local codecs_ok=true
 
+    # Ensure Asterisk is running
+    if ! systemctl is-active --quiet asterisk; then
+        warn "Asterisk is not running - skipping codec verification"
+        return
+    fi
+
+    # Wait for Asterisk to be fully ready
+    sleep 1
+
+    # Get full codec list for debugging
+    local codec_output
+    codec_output=$(asterisk -rx "core show codecs" 2>&1)
+
     # Check codec_g722 (built-in)
-    if asterisk -rx "core show codecs" 2>/dev/null | grep -qi "g722"; then
+    if echo "$codec_output" | grep -qi "g722"; then
         info "  [OK] codec_g722 (G.722) - built-in"
     else
         warn "  [MISSING] codec_g722 (G.722)"
@@ -982,7 +995,7 @@ verify_codecs() {
     fi
 
     # Check codec_g729 (built-in G.729A in Asterisk 22)
-    if asterisk -rx "core show codecs" 2>/dev/null | grep -qi "g729"; then
+    if echo "$codec_output" | grep -qi "g729"; then
         info "  [OK] codec_g729 (G.729) - built-in"
     else
         warn "  [MISSING] codec_g729 (G.729)"
@@ -990,7 +1003,7 @@ verify_codecs() {
     fi
 
     # Check codec_opus (built-in in Asterisk 22)
-    if asterisk -rx "core show codecs" 2>/dev/null | grep -qi "opus"; then
+    if echo "$codec_output" | grep -qi "opus"; then
         info "  [OK] codec_opus (Opus) - built-in"
     else
         warn "  [MISSING] codec_opus (Opus)"
@@ -1001,6 +1014,9 @@ verify_codecs() {
         info "All codecs verified successfully"
     else
         warn "Some codecs may not be available"
+        # Debug: show full codec output
+        info "Full codec output:"
+        echo "$codec_output" | head -20 | while read line; do info "  $line"; done
     fi
 }
 
@@ -1019,7 +1035,13 @@ print_summary() {
 
     # Codec status from core show codecs
     echo "Codecs:"
-    asterisk -rx "core show codecs" 2>/dev/null | grep -E "g722|g729|opus" | awk '{print "  - " $2 " (" $4 ")"}'
+    local codec_list
+    codec_list=$(asterisk -rx "core show codecs" 2>/dev/null | grep -E "g722|g729|opus")
+    if [[ -n "$codec_list" ]]; then
+        echo "$codec_list" | awk '{print "  - " $2 " (" $4 ")"}'
+    else
+        echo "  (unable to query - Asterisk may not be running)"
+    fi
     echo ""
 
     # WebUI URL
