@@ -316,8 +316,15 @@ download_asterisk() {
         -O "$asterisk_tarball"
     info "Download complete"
 
+    # Verify tarball
+    if [[ ! -f "$asterisk_tarball" ]]; then
+        die "Download failed: $asterisk_tarball not found"
+    fi
+    info "Tarball size: $(ls -lh "$asterisk_tarball" | awk '{print $5}')"
+
     # Extract if not already extracted
     local extracted_dir
+    info "Reading tarball contents..."
     extracted_dir=$(tar -tzf "$asterisk_tarball" | head -1 | cut -d'/' -f1)
     
     info "Detected archive directory: $extracted_dir"
@@ -326,37 +333,53 @@ download_asterisk() {
         info "Extracting Asterisk..."
         tar xzf "$asterisk_tarball"
         info "Extraction complete"
+        info "Extracted directory exists: $(ls -la /usr/src/$extracted_dir 2>&1 | head -3)"
     else
-        info "Asterisk source already extracted"
+        info "Asterisk source already extracted at /usr/src/$extracted_dir"
     fi
 
     # Create symlink for easier access
+    info "Creating symlink $ASTERISK_SRC_DIR -> $extracted_dir"
     rm -f "$ASTERISK_SRC_DIR"
     ln -sfn "$extracted_dir" "$ASTERISK_SRC_DIR"
-    info "Created symlink: $ASTERISK_SRC_DIR -> $extracted_dir"
+    info "Symlink created: $(ls -la "$ASTERISK_SRC_DIR")"
 
+    info "Changing directory to $ASTERISK_SRC_DIR"
     cd "$ASTERISK_SRC_DIR"
     info "Asterisk source ready at $ASTERISK_SRC_DIR"
     info "Current directory: $(pwd)"
+    info "Directory contents: $(ls -1 | head -10)"
 }
 
 configure_asterisk() {
     info "Configuring Asterisk..."
 
     cd "$ASTERISK_SRC_DIR"
+    info "Working directory: $(pwd)"
+    
+    if [[ ! -f "./configure" ]]; then
+        die "configure script not found in $(pwd)"
+    fi
 
     # Run configure with bundled PJSIP
+    info "Running ./configure --with-pjproject-bundled --with-ssl --with-srtp"
     ./configure --with-pjproject-bundled --with-ssl --with-srtp
 
-    info "Asterisk configured successfully"
+    if [[ $? -eq 0 ]]; then
+        info "Asterisk configured successfully"
+    else
+        die "Asterisk configuration failed"
+    fi
 }
 
 menuselect_codecs() {
     info "Configuring Asterisk modules and codecs..."
 
     cd "$ASTERISK_SRC_DIR"
+    info "Working directory: $(pwd)"
 
     # Generate menuselect options
+    info "Generating menuselect.makeopts..."
     make menuselect.makeopts
 
     # Enable key codecs
@@ -384,23 +407,36 @@ compile_asterisk() {
     info "Compiling Asterisk (this may take 10-15 minutes)..."
 
     cd "$ASTERISK_SRC_DIR"
+    info "Working directory: $(pwd)"
+    info "Using $(nproc) CPU cores for compilation"
 
     # Compile
     make -j"$(nproc)"
 
-    info "Asterisk compilation complete"
+    if [[ $? -eq 0 ]]; then
+        info "Asterisk compilation complete"
+    else
+        die "Asterisk compilation failed"
+    fi
 }
 
 install_asterisk() {
     info "Installing Asterisk..."
 
     cd "$ASTERISK_SRC_DIR"
+    info "Working directory: $(pwd)"
 
     # Install binaries
+    info "Running make install..."
     make install
+
+    if [[ $? -ne 0 ]]; then
+        die "Asterisk installation failed"
+    fi
 
     # Install sample configs (only if /etc/asterisk is empty)
     if [[ -z "$(ls -A /etc/asterisk 2>/dev/null)" ]]; then
+        info "Installing sample configurations..."
         make samples-config
         info "Sample configurations installed"
     else
@@ -414,6 +450,7 @@ set_asterisk_permissions() {
     info "Setting Asterisk permissions..."
 
     # Create required directories
+    info "Creating directories..."
     mkdir -p /etc/asterisk
     mkdir -p /var/lib/asterisk
     mkdir -p /var/spool/asterisk
@@ -422,6 +459,7 @@ set_asterisk_permissions() {
     mkdir -p /var/spool/asterisk/voicemail
 
     # Set ownership
+    info "Setting ownership to $ASTERISK_USER:$ASTERISK_GROUP..."
     chown -R "$ASTERISK_USER":"$ASTERISK_GROUP" \
         /etc/asterisk \
         /var/lib/asterisk \
@@ -433,6 +471,9 @@ set_asterisk_permissions() {
     install -d -m 755 -o "$ASTERISK_USER" -g "$ASTERISK_GROUP" /var/run/asterisk
 
     info "Asterisk permissions configured"
+    info "Directory permissions:"
+    ls -la /etc/asterisk 2>&1 | head -3 | while read line; do info "  $line"; done
+    ls -la /var/lib/asterisk 2>&1 | head -3 | while read line; do info "  $line"; done
 }
 
 # =============================================================================
