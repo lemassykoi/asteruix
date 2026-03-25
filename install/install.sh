@@ -290,6 +290,17 @@ skip_pjsip_compilation() {
 download_asterisk() {
     info "Downloading Asterisk 22 LTS source..."
 
+    # Clean up any existing Asterisk source to ensure fresh install
+    if [[ -e /usr/src/asterisk-22-current.tar.gz ]] || \
+       [[ -d /usr/src/asterisk-22.* ]] || \
+       [[ -L /usr/src/asterisk-22 ]]; then
+        info "Cleaning up existing Asterisk source..."
+        rm -f /usr/src/asterisk-22-current.tar.gz
+        rm -rf /usr/src/asterisk-22.*
+        rm -f /usr/src/asterisk-22
+        info "Cleanup complete"
+    fi
+
     mkdir -p "$ASTERISK_SRC_DIR"
 
     cd /usr/src
@@ -297,15 +308,11 @@ download_asterisk() {
     # Use the -current symlink for latest Asterisk 22
     local asterisk_tarball="asterisk-22-current.tar.gz"
 
-    if [[ ! -f "/usr/src/$asterisk_tarball" ]]; then
-        info "Downloading $asterisk_tarball..."
-        wget -q --show-progress \
-            "https://downloads.asterisk.org/pub/telephony/asterisk/$asterisk_tarball" \
-            -O "$asterisk_tarball"
-        info "Download complete"
-    else
-        info "Asterisk tarball already exists"
-    fi
+    info "Downloading $asterisk_tarball..."
+    wget -q --show-progress \
+        "https://downloads.asterisk.org/pub/telephony/asterisk/$asterisk_tarball" \
+        -O "$asterisk_tarball"
+    info "Download complete"
 
     # Extract if not already extracted
     local extracted_dir
