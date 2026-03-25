@@ -87,6 +87,18 @@ error_handler() {
 trap 'error_handler ${LINENO}' ERR
 
 # =============================================================================
+# Helper Functions
+# =============================================================================
+
+require_root() {
+    if [[ $EUID -ne 0 ]]; then
+        echo "ERROR: This script must be run as root" >&2
+        echo "Usage: sudo $0 [options]" >&2
+        exit 1
+    fi
+}
+
+# =============================================================================
 # Pre-flight Checks (Phase 1.1)
 # =============================================================================
 
@@ -524,6 +536,40 @@ set_asterisk_permissions() {
     info "Directory permissions:"
     ls -la /etc/asterisk 2>&1 | head -3 || true
     ls -la /var/lib/asterisk 2>&1 | head -3 || true
+}
+
+configure_codec_modules() {
+    info "Configuring codec modules to load..."
+
+    local modules_conf="/etc/asterisk/modules.conf"
+
+    if [[ ! -f "$modules_conf" ]]; then
+        warn "modules.conf not found, creating..."
+        cat > "$modules_conf" << 'EOF'
+[modules]
+; Static loadable modules
+load => codec_g722.so
+load => codec_g729.so
+load => codec_opus.so
+load => format_ogg_vorbis.so
+EOF
+        info "Created modules.conf with codec modules"
+    else
+        # Add codec loading if not present
+        if ! grep -q "load => codec_g729" "$modules_conf"; then
+            echo "load => codec_g729.so" >> "$modules_conf"
+            info "Added codec_g729 to modules.conf"
+        fi
+        if ! grep -q "load => codec_opus" "$modules_conf"; then
+            echo "load => codec_opus.so" >> "$modules_conf"
+            info "Added codec_opus to modules.conf"
+        fi
+        if ! grep -q "load => format_ogg_vorbis" "$modules_conf"; then
+            echo "load => format_ogg_vorbis.so" >> "$modules_conf"
+            info "Added format_ogg_vorbis to modules.conf"
+        fi
+        # codec_g722 is built-in, no need to load
+    fi
 }
 
 # =============================================================================
@@ -1125,6 +1171,7 @@ main() {
     compile_asterisk
     install_asterisk
     set_asterisk_permissions
+    configure_codec_modules
 
     info "Phase 3 completed successfully"
     echo ""

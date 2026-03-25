@@ -280,8 +280,22 @@ def import_timegroups(args):
             raw, _re.MULTILINE | _re.DOTALL,
         )
         if not tc_match:
-            print("Error: [time-check] context not found.", file=sys.stderr)
-            sys.exit(1)
+            # No [time-check] context - create default business hours
+            import json
+            name = args.name or "Business Hours"
+            rules = [{"start": "09:00", "end": "17:00", "days": ["mon", "tue", "wed", "thu", "fri"]}]
+            rules_json = json.dumps(rules)
+
+            db.execute(
+                "INSERT INTO time_groups (name, timezone, rules_json) VALUES (?, ?, ?) "
+                "ON CONFLICT(name) DO UPDATE SET rules_json=excluded.rules_json",
+                (name, "Europe/Paris", rules_json),
+            )
+            db.commit()
+
+            print(f"Created default time group '{name}' (no [time-check] context found):")
+            print(f"  09:00-17:00 mon,tue,wed,thu,fri")
+            return
 
         body = tc_match.group(1)
         time_re = _re.compile(
