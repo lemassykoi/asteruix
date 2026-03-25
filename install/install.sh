@@ -417,24 +417,35 @@ menuselect_codecs() {
     make menuselect.makeopts
 
     # Enable key codecs
-    if menuselect/menuselect --enable codec_g729 menuselect.makeopts 2>/dev/null; then
-        info "Enabled codec_g729"
+    # codec_g729 (BCG729) - requires libbcg729-dev
+    if menuselect/menuselect --enable codec_g729 menuselect.makeopts 2>&1; then
+        info "Enabled codec_g729 (G.729)"
     else
-        warn "codec_g729 may not be available (check BCG729 installation)"
+        warn "codec_g729 enablement failed (may need BCG729)"
     fi
 
-    menuselect/menuselect --enable codec_g722 menuselect.makeopts 2>/dev/null || true
-    menuselect/menuselect --enable codec_opus menuselect.makeopts 2>/dev/null || true
-    menuselect/menuselect --enable format_ogg_vorbis menuselect.makeopts 2>/dev/null || true
+    # codec_g722 is built-in by default in Asterisk 22, no menuselect needed
+    info "codec_g722 (G.722) is built-in by default"
+
+    # codec_opus
+    if menuselect/menuselect --enable codec_opus menuselect.makeopts 2>&1; then
+        info "Enabled codec_opus (Opus)"
+    else
+        warn "codec_opus enablement failed"
+    fi
+
+    menuselect/menuselect --enable format_ogg_vorbis menuselect.makeopts 2>&1 || true
 
     # Disable unused channel drivers (reduces attack surface)
-    menuselect/menuselect --disable chan_alsa menuselect.makeopts 2>/dev/null || true
-    menuselect/menuselect --disable chan_console menuselect.makeopts 2>/dev/null || true
-    menuselect/menuselect --disable chan_mgcp menuselect.makeopts 2>/dev/null || true
-    menuselect/menuselect --disable chan_skinny menuselect.makeopts 2>/dev/null || true
-    menuselect/menuselect --disable chan_unistim menuselect.makeopts 2>/dev/null || true
+    menuselect/menuselect --disable chan_alsa menuselect.makeopts 2>&1 || true
+    menuselect/menuselect --disable chan_console menuselect.makeopts 2>&1 || true
+    menuselect/menuselect --disable chan_mgcp menuselect.makeopts 2>&1 || true
+    menuselect/menuselect --disable chan_skinny menuselect.makeopts 2>&1 || true
+    menuselect/menuselect --disable chan_unistim menuselect.makeopts 2>&1 || true
 
     info "Module selection configured"
+    info "Menuselect options:"
+    grep -E "codec_g729|codec_opus|codec_g722" menuselect.makeopts 2>/dev/null || true
 }
 
 compile_asterisk() {
@@ -934,23 +945,29 @@ verify_codecs() {
 
     local codecs_ok=true
 
-    # Check codec_g729
+    # Check codec_g729 (loadable module)
     if asterisk -rx "module show like codec_g729" 2>/dev/null | grep -q "codec_g729"; then
         info "  [OK] codec_g729 (G.729)"
     else
-        warn "  [MISSING] codec_g729 (G.729)"
+        warn "  [MISSING] codec_g729 (G.729) - check BCG729 library"
         codecs_ok=false
     fi
 
-    # Check codec_g722 (built-in)
-    if asterisk -rx "module show like g722" 2>/dev/null | grep -q "g722"; then
-        info "  [OK] codec_g722 (G.722)"
+    # Check codec_g722 (built-in to core, not a module)
+    # Use translation table to verify it's available
+    if asterisk -rx "core show translation" 2>/dev/null | grep -q "G722"; then
+        info "  [OK] codec_g722 (G.722) - built-in"
     else
-        warn "  [MISSING] codec_g722 (G.722)"
-        codecs_ok=false
+        # Fallback: check if g722 format is recognized
+        if asterisk -rx "core show codecs" 2>/dev/null | grep -qi "g722"; then
+            info "  [OK] codec_g722 (G.722) - built-in"
+        else
+            warn "  [MISSING] codec_g722 (G.722)"
+            codecs_ok=false
+        fi
     fi
 
-    # Check codec_opus
+    # Check codec_opus (loadable module)
     if asterisk -rx "module show like codec_opus" 2>/dev/null | grep -q "codec_opus"; then
         info "  [OK] codec_opus (Opus)"
     else
@@ -978,9 +995,12 @@ print_summary() {
     echo "Asterisk: $version"
     echo ""
 
-    # Codec status
+    # Codec status - check both modules and built-in
     echo "Codecs:"
-    asterisk -rx "module show like codec" 2>/dev/null | grep -E "g729|g722|opus" | head -5 || echo "  (unable to query)"
+    echo "  Loadable modules:"
+    asterisk -rx "module show like codec" 2>/dev/null | grep -E "g729|opus" | awk '{print "    - " $1 " (" $4 ")"}' || echo "    (none loaded)"
+    echo "  Built-in:"
+    echo "    - codec_g722 (G.722) - built into core"
     echo ""
 
     # WebUI URL
