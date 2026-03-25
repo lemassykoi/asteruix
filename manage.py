@@ -439,6 +439,37 @@ def import_conference(args):
             print("Managed ConfBridge config file generated.")
 
 
+def populate_spam_db(args):
+    """Populate AstDB with French spam prefixes."""
+    from app.asterisk_cmd import run_command
+
+    # Common French spam prefixes (4-digit)
+    spam_prefixes = [
+        "0161", "0162",  # Île-de-France spam
+        "0270", "0271",  # Nord-Ouest spam
+        "0377", "0378",  # Est spam
+        "0424", "0425",  # Sud-Est spam
+        "0568", "0569",  # Sud-Ouest spam
+        "0948", "0949",  # Non-geographic spam
+    ]
+
+    spam_family = args.family or "spam-prefix"
+    count = 0
+
+    print(f"Populating AstDB '{spam_family}' with French spam prefixes...")
+
+    for prefix in spam_prefixes:
+        try:
+            run_command(f"database put {spam_family} {prefix} 1")
+            print(f"  Added: {prefix}")
+            count += 1
+        except Exception as e:
+            print(f"  Failed: {prefix} - {e}")
+
+    print(f"\n{count} spam prefixes added to AstDB.")
+    print("Blocked calls will be logged to /var/log/asterisk/full")
+
+
 def create_timegroup(args):
     """Create a time group."""
     import json
@@ -519,6 +550,12 @@ def create_extension(args):
         )
         db.commit()
         print(f"Extension {ext} ({name}) created.")
+
+        # Generate PJSIP config so extension is immediately available
+        from app.generators import write_pjsip_extensions, write_voicemail_boxes
+        write_pjsip_extensions()
+        write_voicemail_boxes()
+        print("PJSIP configuration generated.")
 
 
 def create_inbound(args):
@@ -608,6 +645,13 @@ def main():
     p_conf.add_argument("--generate", action="store_true",
                         help="Also generate managed ConfBridge config file")
     p_conf.set_defaults(func=import_conference)
+
+    # Spam database population
+    p_spam = sub.add_parser("populate-spam-db",
+                            help="Populate AstDB with French spam prefixes")
+    p_spam.add_argument("--family", default="spam-prefix",
+                        help="AstDB family name (default: spam-prefix)")
+    p_spam.set_defaults(func=populate_spam_db)
 
     # Create commands for fresh installations
     p_ctg = sub.add_parser("create-timegroup", help="Create a time group")

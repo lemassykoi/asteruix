@@ -803,6 +803,11 @@ create_default_config() {
         --destination "extension:4900" 2>/dev/null || \
     info "Default inbound route created or already exists"
 
+    # Populate spam database with French spam prefixes
+    info "Populating spam database with French spam prefixes..."
+    python3 manage.py populate-spam-db 2>/dev/null || \
+    info "Spam database populated (or already exists)"
+
     # Reload Asterisk to apply changes
     info "Reloading Asterisk configuration..."
     asterisk -rx "core reload" 2>/dev/null || true
@@ -816,6 +821,7 @@ create_default_config() {
     info "Password:  4900"
     info "Time Group: Business Hours (Mon-Fri, 9am-5pm)"
     info "Welcome announcement: TTS enabled"
+    info "Spam prefixes: 12 French spam prefixes loaded"
     info ""
 }
 
