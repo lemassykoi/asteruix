@@ -220,11 +220,8 @@ install_system_packages() {
         libcurl4-openssl-dev
     )
 
-    # PJSIP system libraries
-    local pjsip_deps=(
-        libpjsip-dev
-        libpjproject-dev
-    )
+    # Note: PJSIP system libraries (libpjsip-dev, libpjproject-dev) are NOT needed
+    # because we use --with-pjproject-bundled to build PJSIP with Asterisk
 
     # BCG729 (G.729 codec)
     local bcg729_deps=(
@@ -254,7 +251,6 @@ install_system_packages() {
     local all_packages=(
         "${build_tools[@]}"
         "${asterisk_deps[@]}"
-        "${pjsip_deps[@]}"
         "${bcg729_deps[@]}"
         "${audio_tools[@]}"
         "${python_deps[@]}"
