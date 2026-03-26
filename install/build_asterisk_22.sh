@@ -13,7 +13,7 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 echo "===== 0. Updating system ====="
-mv /etc/locale.gen /etc/locale.gen/bak
+mv /etc/locale.gen /etc/locale.gen.bak
 echo "en_US.UTF-8" > /etc/locale.gen
 echo "fr_FR.UTF-8" >> /etc/locale.gen
 locale-gen
