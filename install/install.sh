@@ -204,93 +204,43 @@ create_asterisk_user() {
 # Install System Packages (Phase 1.3)
 # =============================================================================
 
-install_system_packages() {
+install_prerequisites() {
     info "Updating package lists..."
     apt-get update -qq
 
-    info "Installing system packages..."
+    info "Installing minimal prerequisites..."
+    
+    # Install aptitude (required by install_prereq) and basic tools
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+        aptitude \
+        wget \
+        subversion \
+        bzip2 \
+        patch
 
-    # Build toolchain
-    local build_tools=(
-        build-essential
-        pkg-config
-        autoconf
-        automake
-        libtool
-        cmake
-        git
-        curl
-        wget
-        doxygen
-        graphviz
-        libxslt-dev
-    )
+    info "Prerequisites installed successfully"
+}
 
-    # Asterisk dependencies
-    local asterisk_deps=(
-        libjansson-dev
-        libxml2-dev
-        libsqlite3-dev
-        libssl-dev
-        uuid-dev
-        libsrtp2-dev
-        libspeex-dev
-        libspeexdsp-dev
-        libopus-dev
-        libncurses-dev
-        libedit-dev
-        libunbound-dev
-        libcurl4-openssl-dev
-    )
-
-    # Note: PJSIP system libraries (libpjsip-dev, libpjproject-dev) are NOT needed
-    # because we use --with-pjproject-bundled to build PJSIP with Asterisk
-
-    # BCG729 (G.729 codec)
-    local bcg729_deps=(
-        libbcg729-dev
-    )
-
-    # Audio tools (MoH/announcement conversion)
-    local audio_tools=(
-        sox
-        libsox-fmt-mp3
-    )
-
-    # Asterisk sounds (G.722, ulaw, alaw prompts)
-    local asterisk_sounds=(
-        asterisk-core-sounds-en-g722
+install_asterisk_dependencies() {
+    info "Running Asterisk install_prereq script..."
+    # Use official Asterisk prereq script to install all build dependencies
+    cd "$ASTERISK_SRC_DIR"
+    bash contrib/scripts/install_prereq install
+    
+    info "Installing WebUI-specific packages..."
+    # Install packages specific to AsterUIX (not needed for Asterisk build)
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+        sox \
+        libsox-fmt-mp3 \
+        python3 \
+        python3-venv \
+        python3-pip \
+        python3-dev \
+        fail2ban \
+        asterisk-core-sounds-en-g722 \
         asterisk-core-sounds-fr-g722
-    )
 
-    # Python
-    local python_deps=(
-        python3
-        python3-venv
-        python3-pip
-        python3-dev
-    )
-
-    # Optional
-    local optional=(
-        fail2ban
-    )
-
-    # Combine all packages
-    local all_packages=(
-        "${build_tools[@]}"
-        "${asterisk_deps[@]}"
-        "${bcg729_deps[@]}"
-        "${audio_tools[@]}"
-        "${asterisk_sounds[@]}"
-        "${python_deps[@]}"
-        "${optional[@]}"
-    )
-
-    # Install packages
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "${all_packages[@]}"
-
-    info "System packages installed successfully"
+    info "All dependencies installed successfully"
 }
 
 # =============================================================================
@@ -596,18 +546,6 @@ configure_asterisk_base() {
     local asterisk_conf="/etc/asterisk/asterisk.conf"
 
     if [[ -f "$asterisk_conf" ]]; then
-        # Set French as default language and tones
-        sed -i 's/^;\?defaultlanguage\s*=.*/defaultlanguage=fr/' "$asterisk_conf"
-        sed -i 's/^;\?language\s*=.*/language=fr/' "$asterisk_conf"
-        
-        # Add if not present
-        if ! grep -q "^defaultlanguage=" "$asterisk_conf"; then
-            echo "defaultlanguage=fr" >> "$asterisk_conf"
-        fi
-        if ! grep -q "^language=" "$asterisk_conf"; then
-            echo "language=fr" >> "$asterisk_conf"
-        fi
-
         # Uncomment or add runuser and rungroup
         sed -i 's/^;\?runuser\s*=.*/runuser=asterisk/' "$asterisk_conf"
         sed -i 's/^;\?rungroup\s*=.*/rungroup=asterisk/' "$asterisk_conf"
@@ -620,7 +558,22 @@ configure_asterisk_base() {
             echo "rungroup=asterisk" >> "$asterisk_conf"
         fi
 
-        info "asterisk.conf configured (language=fr)"
+        info "asterisk.conf configured"
+    fi
+
+    # Set French indication tones in indications.conf
+    local indications_conf="/etc/asterisk/indications.conf"
+    if [[ -f "$indications_conf" ]]; then
+        # Set default country to France in [general] section
+        sed -i 's/^country\s*=\s*us/country=fr/' "$indications_conf"
+        sed -i 's/^;\?country\s*=.*/country=fr/' "$indications_conf"
+        
+        # If country not set, add it after [general]
+        if ! grep -q "^country=" "$indications_conf"; then
+            sed -i '/^\[general\]/a country=fr' "$indications_conf"
+        fi
+        
+        info "indications.conf configured (country=fr)"
     fi
 
     # Configure modules.conf to disable deprecated/problematic modules
@@ -1195,7 +1148,7 @@ main() {
     preflight_checks
     prompt_confirmation
     create_asterisk_user
-    install_system_packages
+    install_prerequisites
 
     info "Phase 1 completed successfully"
     echo ""
@@ -1212,6 +1165,7 @@ main() {
     info "=== Phase 3: Asterisk 22 LTS Installation ==="
 
     download_asterisk
+    install_asterisk_dependencies
     configure_asterisk
     menuselect_codecs
     compile_asterisk
