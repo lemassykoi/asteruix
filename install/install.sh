@@ -439,6 +439,14 @@ install_asterisk() {
         info "Existing Asterisk configuration preserved"
     fi
 
+    # Install init scripts and system configuration
+    info "Installing system configuration..."
+    make config
+
+    # Update shared library cache
+    info "Updating shared library cache..."
+    ldconfig
+
     # Generate program documentation (optional, may produce warnings)
     info "Generating program documentation..."
     make progdocs 2>&1 | grep -v "warning:" | grep -v "dot:" | head -5 || true
@@ -584,13 +592,39 @@ configure_asterisk_base() {
         sed -i 's/^load => app_adsiprog.so/;load => app_adsiprog.so ; deprecated/' "$modules_conf"
         sed -i 's/^load => app_getcpeid.so/;load => app_getcpeid.so ; deprecated/' "$modules_conf"
         
-        # Disable AEL (Asterisk Extension Language) if not used - causes macro warnings
+        # Disable AEL (Asterisk Extension Language) - causes macro warnings for unused dundi macros
         sed -i 's/^load => pbx_ael.so/;load => pbx_ael.so ; not needed/' "$modules_conf"
         
-        # Disable phone provisioning - not needed, causes "no valid server" warnings
+        # Disable phone provisioning - not configured
         sed -i 's/^load => res_phoneprov.so/;load => res_phoneprov.so ; not configured/' "$modules_conf"
         
-        info "modules.conf cleaned up (deprecated modules disabled)"
+        # Disable LDAP - not configured
+        sed -i 's/^load => res_config_ldap.so/;load => res_config_ldap.so ; not configured/' "$modules_conf"
+        
+        # Disable PostgreSQL - not configured
+        sed -i 's/^load => res_config_pgsql.so/;load => res_config_pgsql.so ; not configured/' "$modules_conf"
+        sed -i 's/^load => cdr_pgsql.so/;load => cdr_pgsql.so ; not configured/' "$modules_conf"
+        sed -i 's/^load => cel_pgsql.so/;load => cel_pgsql.so ; not configured/' "$modules_conf"
+        
+        # Disable FreeTDS (MSSQL) - not configured
+        sed -i 's/^load => res_config_tds.so/;load => res_config_tds.so ; not configured/' "$modules_conf"
+        sed -i 's/^load => cdr_tds.so/;load => cdr_tds.so ; not configured/' "$modules_conf"
+        sed -i 's/^load => cel_tds.so/;load => cel_tds.so ; not configured/' "$modules_conf"
+        
+        # Disable RADIUS - not configured
+        sed -i 's/^load => cel_radius.so/;load => cel_radius.so ; not configured/' "$modules_conf"
+        sed -i 's/^load => cdr_radius.so/;load => cdr_radius.so ; not configured/' "$modules_conf"
+        
+        # Disable ODBC - not configured
+        sed -i 's/^load => res_config_odbc.so/;load => res_config_odbc.so ; not configured/' "$modules_conf"
+        sed -i 's/^load => cdr_odbc.so/;load => cdr_odbc.so ; not configured/' "$modules_conf"
+        sed -i 's/^load => cel_odbc.so/;load => cel_odbc.so ; not configured/' "$modules_conf"
+        
+        # Disable SQLite custom CDR/CEL - not configured
+        sed -i 's/^load => cdr_sqlite3_custom.so/;load => cdr_sqlite3_custom.so ; not configured/' "$modules_conf"
+        sed -i 's/^load => cel_sqlite3_custom.so/;load => cel_sqlite3_custom.so ; not configured/' "$modules_conf"
+        
+        info "modules.conf cleaned up (deprecated/unconfigured modules disabled)"
     fi
 
     # Verify modules.conf exists
