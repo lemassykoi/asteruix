@@ -223,6 +223,7 @@ install_system_packages() {
         wget
         doxygen
         graphviz
+        libxslt-dev
     )
 
     # Asterisk dependencies
@@ -632,6 +633,9 @@ configure_asterisk_base() {
         
         # Disable AEL (Asterisk Extension Language) if not used - causes macro warnings
         sed -i 's/^load => pbx_ael.so/;load => pbx_ael.so ; not needed/' "$modules_conf"
+        
+        # Disable phone provisioning - not needed, causes "no valid server" warnings
+        sed -i 's/^load => res_phoneprov.so/;load => res_phoneprov.so ; not configured/' "$modules_conf"
         
         info "modules.conf cleaned up (deprecated modules disabled)"
     fi
