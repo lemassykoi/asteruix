@@ -572,6 +572,8 @@ After=network-online.target
 Type=forking
 PIDFile=/run/asterisk/asterisk.pid
 Environment=HOME=/var/lib/asterisk
+RuntimeDirectory=asterisk
+RuntimeDirectoryMode=0755
 ExecStartPre=/usr/bin/install -d -m 755 -o asterisk -g asterisk /run/asterisk
 ExecStart=/usr/sbin/safe_asterisk
 ExecStop=/usr/sbin/asterisk -rx "core stop now"
