@@ -595,6 +595,18 @@ configure_asterisk_base() {
     local asterisk_conf="/etc/asterisk/asterisk.conf"
 
     if [[ -f "$asterisk_conf" ]]; then
+        # Set French as default language and tones
+        sed -i 's/^;\?defaultlanguage\s*=.*/defaultlanguage=fr/' "$asterisk_conf"
+        sed -i 's/^;\?language\s*=.*/language=fr/' "$asterisk_conf"
+        
+        # Add if not present
+        if ! grep -q "^defaultlanguage=" "$asterisk_conf"; then
+            echo "defaultlanguage=fr" >> "$asterisk_conf"
+        fi
+        if ! grep -q "^language=" "$asterisk_conf"; then
+            echo "language=fr" >> "$asterisk_conf"
+        fi
+
         # Uncomment or add runuser and rungroup
         sed -i 's/^;\?runuser\s*=.*/runuser=asterisk/' "$asterisk_conf"
         sed -i 's/^;\?rungroup\s*=.*/rungroup=asterisk/' "$asterisk_conf"
@@ -607,7 +619,21 @@ configure_asterisk_base() {
             echo "rungroup=asterisk" >> "$asterisk_conf"
         fi
 
-        info "asterisk.conf configured"
+        info "asterisk.conf configured (language=fr)"
+    fi
+
+    # Configure modules.conf to disable deprecated/problematic modules
+    local modules_conf="/etc/asterisk/modules.conf"
+    if [[ -f "$modules_conf" ]]; then
+        # Disable deprecated ADSI modules
+        sed -i 's/^load => res_adsi.so/;load => res_adsi.so ; deprecated/' "$modules_conf"
+        sed -i 's/^load => app_adsiprog.so/;load => app_adsiprog.so ; deprecated/' "$modules_conf"
+        sed -i 's/^load => app_getcpeid.so/;load => app_getcpeid.so ; deprecated/' "$modules_conf"
+        
+        # Disable AEL (Asterisk Extension Language) if not used - causes macro warnings
+        sed -i 's/^load => pbx_ael.so/;load => pbx_ael.so ; not needed/' "$modules_conf"
+        
+        info "modules.conf cleaned up (deprecated modules disabled)"
     fi
 
     # Verify modules.conf exists
