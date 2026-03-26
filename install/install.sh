@@ -732,6 +732,18 @@ migrate_includes() {
 
     cd "$WEBUI_DIR"
 
+    # Create empty WebUI config files so Asterisk can start
+    # These will be populated by create_default_config()
+    info "Creating empty WebUI config placeholders..."
+    mkdir -p /etc/asterisk/webui
+    touch /etc/asterisk/webui/pjsip_extensions.conf
+    touch /etc/asterisk/webui/pjsip_trunks.conf
+    touch /etc/asterisk/webui/voicemail_boxes.conf
+    touch /etc/asterisk/webui/musiconhold_classes.conf
+    touch /etc/asterisk/webui/extensions_inbound.conf
+    touch /etc/asterisk/webui/extensions_timegroups.conf
+    touch /etc/asterisk/webui/confbridge_profiles.conf
+
     # Run migrate-includes.sh if it exists
     if [[ -f "$WEBUI_DIR/scripts/migrate-includes.sh" ]]; then
         bash "$WEBUI_DIR/scripts/migrate-includes.sh"
