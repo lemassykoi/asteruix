@@ -36,7 +36,10 @@ contrib/scripts/install_prereq install
 echo "===== 4. Configuring ====="
 ./configure
 
-echo "===== 4.1 Configuring menuselect (non-interactive) ====="
+echo "===== 4.1 make menuselect ====="
+make menuselect
+
+echo "===== 4.2 Configuring menuselect (non-interactive) ====="
 menuselect/menuselect --enable format_mp3 menuselect.makeopts
 menuselect/menuselect --enable codec_opus menuselect.makeopts
 menuselect/menuselect --enable codec_g729a menuselect.makeopts
