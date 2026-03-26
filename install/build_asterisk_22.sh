@@ -16,9 +16,8 @@ echo "===== 0. Updating system ====="
 mv /etc/locale.gen /etc/locale.gen.bak
 echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
 echo "fr_FR.UTF-8 UTF-8" >> /etc/locale.gen
-locale-gen
 echo "LC_ALL=fr_FR.UTF-8" >> /etc/default/locale
-dpkg-reconfigure --frontend noninteractive locales
+locale-gen
 
 apt update -qq
 
@@ -72,8 +71,8 @@ sudo chown -R asterisk /var/{lib,log,spool}/asterisk
 sudo chown -R asterisk /usr/lib/asterisk
 
 echo "===== 6.2 Configure Asterisk to run as asterisk user ====="
-#sudo sed -i 's/^;runuser./runuser = asterisk/' /etc/asterisk/asterisk.conf
-#sudo sed -i 's/^;rungroup./rungroup = asterisk/' /etc/asterisk/asterisk.conf
+sed -i 's/^;runuser/runuser/' /etc/asterisk/asterisk.conf
+sed -i 's/^;rungroup/rungroup/' /etc/asterisk/asterisk.conf
 
 echo "===== 6.3 Setting French tones ====="
 sed -i 's/^country=.*/country=fr/' /etc/asterisk/indications.conf
