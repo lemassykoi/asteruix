@@ -569,17 +569,17 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
-Type=forking
-PIDFile=/run/asterisk/asterisk.pid
+Type=simple
+User=asterisk
+Group=asterisk
 Environment=HOME=/var/lib/asterisk
 RuntimeDirectory=asterisk
 RuntimeDirectoryMode=0755
 ExecStartPre=/usr/bin/install -d -m 755 -o asterisk -g asterisk /run/asterisk
-ExecStart=/usr/sbin/safe_asterisk
+ExecStart=/usr/sbin/asterisk -f
 ExecStop=/usr/sbin/asterisk -rx "core stop now"
 Restart=on-failure
 LimitCORE=infinity
-TimeoutStartSec=60
 
 [Install]
 WantedBy=multi-user.target
