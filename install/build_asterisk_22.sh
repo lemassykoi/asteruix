@@ -14,8 +14,8 @@ fi
 
 echo "===== 0. Updating system ====="
 mv /etc/locale.gen /etc/locale.gen.bak
-echo "en_US.UTF-8" > /etc/locale.gen
-echo "fr_FR.UTF-8" >> /etc/locale.gen
+echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
+echo "fr_FR.UTF-8 UTF-8" >> /etc/locale.gen
 locale-gen
 echo "LC_ALL=fr_FR.UTF-8" >> /etc/default/locale
 dpkg-reconfigure --frontend noninteractive locales
