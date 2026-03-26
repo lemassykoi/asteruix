@@ -41,11 +41,9 @@ make menuselect.makeopts
 
 echo "===== 4.2 Configuring menuselect (non-interactive) ====="
 echo "===== 4.2.1 Modules ====="
-menuselect/menuselect --enable format_mp3 --enable codec_opus --enable codec_g729a --enable jukebox.agi
-menuselect.makeopts
+menuselect/menuselect --enable format_mp3 --enable codec_opus --enable codec_g729a --enable jukebox.agi menuselect.makeopts
 echo "===== 4.2.2 Sounds ====="
-menuselect/menuselect --enable CORE-SOUNDS-FR-G722 --enable CORE-SOUNDS-FR-G729 --enable EXTRA-SOUNDS-FR-G722 --enable EXTRA-SOUNDS-FR-G729 --enable MOH-OPSOUND-G722 --enable MOH-OPSOUND-G729
-menuselect.makeopts
+menuselect/menuselect --enable CORE-SOUNDS-FR-G722 --enable CORE-SOUNDS-FR-G729 --enable EXTRA-SOUNDS-FR-G722 --enable EXTRA-SOUNDS-FR-G729 --enable MOH-OPSOUND-G722 --enable MOH-OPSOUND-G729 menuselect.makeopts
 
 echo "===== 5. Compiling ====="
 make -j$(nproc)
