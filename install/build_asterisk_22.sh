@@ -13,8 +13,9 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 echo "===== 0. Updating system ====="
-echo "locales locales/default_environment_locale select fr_FR.UTF-8" | debconf-set-selections
 echo "locales locales/locales_to_be_generated multiselect fr_FR.UTF-8 UTF-8" | debconf-set-selections
+echo "locales locales/locales_to_be_generated multiselect en_US.UTF-8 UTF-8" | debconf-set-selections
+echo "locales locales/default_environment_locale select fr_FR.UTF-8" | debconf-set-selections
 rm "/etc/locale.gen"
 dpkg-reconfigure --frontend noninteractive locales
 
