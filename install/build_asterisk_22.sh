@@ -16,7 +16,12 @@ echo "===== 0. Updating system ====="
 apt update -qq
 
 echo "===== 1. Installing dependencies ====="
-apt install -yqq build-essential git wget subversion libncurses5-dev libssl-dev libxml2-dev libsqlite3-dev uuid-dev libjansson-dev
+apt install -yqq build-essential git curl wget subversion libncurses5-dev libssl-dev libxml2-dev libsqlite3-dev uuid-dev libjansson-dev libmpg123-dev
+
+echo "===== 1.1 Creating asterisk user ====="
+if ! id "asterisk" &>/dev/null; then
+sudo adduser --system --group --home /var/lib/asterisk asterisk
+fi
 
 echo "===== 2. Downloading Asterisk ====="
 cd /usr/src
@@ -31,6 +36,20 @@ contrib/scripts/install_prereq install
 echo "===== 4. Configuring ====="
 ./configure
 
+echo "===== 4.1 Configuring menuselect (non-interactive) ====="
+menuselect/menuselect --enable format_mp3 menuselect.makeopts
+menuselect/menuselect --enable codec_opus menuselect.makeopts
+menuselect/menuselect --enable codec_g729a menuselect.makeopts
+menuselect/menuselect --enable agi_jukebox menuselect.makeopts
+
+menuselect/menuselect --enable CORE-SOUNDS-FR-G722 menuselect.makeopts
+menuselect/menuselect --enable CORE-SOUNDS-FR-G729 menuselect.makeopts
+menuselect/menuselect --enable EXTRA-SOUNDS-FR-G722 menuselect.makeopts
+menuselect/menuselect --enable EXTRA-SOUNDS-FR-G729 menuselect.makeopts
+menuselect/menuselect --enable MOH-OPSOUND-G722 menuselect.makeopts
+menuselect/menuselect --enable MOH-OPSOUND-G729 menuselect.makeopts
+
+
 echo "===== 5. Compiling ====="
 make -j$(nproc)
 
@@ -40,7 +59,17 @@ make samples
 make config
 ldconfig
 
-echo "===== Setting French tones ====="
+echo "===== 6.1 Setting ownership ====="
+sudo chown -R asterisk /var/run/asterisk
+sudo chown -R asterisk /etc/asterisk
+sudo chown -R asterisk /var/{lib,log,spool}/asterisk
+sudo chown -R asterisk /usr/lib/asterisk
+
+echo "===== 6.2 Configure Asterisk to run as asterisk user ====="
+sudo sed -i 's/^;runuser./runuser = asterisk/' /etc/asterisk/asterisk.conf
+sudo sed -i 's/^;rungroup./rungroup = asterisk/' /etc/asterisk/asterisk.conf
+
+echo "===== 6.3 Setting French tones ====="
 sed -i 's/^country=.*/country=fr/' /etc/asterisk/indications.conf
 
 echo "===== 7. Starting Asterisk ====="
