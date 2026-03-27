@@ -87,6 +87,23 @@ sed -i 's/^;hideconnect/hideconnect/' /etc/asterisk/asterisk.conf
 echo "===== 6.3 Setting French tones ====="
 sed -i 's/^country = .*/country = fr/' /etc/asterisk/indications.conf
 
+echo "===== 6.4 Setting pjsip.conf (enable TCP and UDP transport) ====="
+cat <<EOF >> /etc/asterisk/pjsip.conf
+
+[transport-udp]
+type=transport
+protocol=udp
+bind=0.0.0.0
+
+[transport-tcp]
+type=transport
+protocol=tcp
+bind=0.0.0.0
+tcp_keepalive_enable=yes        ; Enable TCP keepalive (yes/no)
+tcp_keepalive_idle_time=30      ; Time in seconds the connection needs to remain idle before TCP starts sending keepalive probes
+tcp_keepalive_interval_time=10  ; The time in seconds between individual keepalive probes
+tcp_keepalive_probe_count=5     ; The maximum number of keepalive probes TCP should send before dropping the connection
+EOF
 
 echo "===== 7. Starting Asterisk ====="
 systemctl daemon-reexec
