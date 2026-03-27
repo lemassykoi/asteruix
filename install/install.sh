@@ -191,6 +191,7 @@ install_asterisk() {
 
     if [[ $? -eq 0 ]]; then
         info "Asterisk 22 installation completed successfully"
+        sleep 2
     else
         die "Asterisk installation failed"
     fi
