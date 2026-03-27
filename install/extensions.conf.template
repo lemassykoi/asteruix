@@ -1,0 +1,61 @@
+;===============================================================================
+; Dialplan — AsterUIX Managed PBX
+; Auto-deployed by install script — safe to customise static sections.
+; Dynamic sections (inbound, ring groups, IVR, etc.) are managed by WebUI
+; via #include files in /etc/asterisk/webui/.
+;===============================================================================
+
+[general]
+static = yes
+writeprotect = no
+
+[globals]
+DIAL_TIMEOUT = 30
+
+;---------------------------------------
+; Internal context — extensions dial each other
+; WebUI-managed features (ring groups, conferences, IVR) add
+; additional extensions to [internal] via #include files.
+;---------------------------------------
+[internal]
+; Catch-all for PJSIP extensions — any registered endpoint can be dialled
+exten => _X!,1,NoOp(Internal call to ${EXTEN})
+ same => n,Set(CHANNEL(musicclass)=default)
+ same => n,Dial(PJSIP/${EXTEN},${DIAL_TIMEOUT},tTr)
+ same => n,GotoIf($["${DIALSTATUS}" = "BUSY"]?busy:unavail)
+ same => n(busy),VoiceMail(${EXTEN}@default,b)
+ same => n,Hangup()
+ same => n(unavail),VoiceMail(${EXTEN}@default,u)
+ same => n,Hangup()
+
+; Voicemail access
+exten => *98,1,NoOp(Voicemail access)
+ same => n,VoiceMailMain(${CALLERID(num)}@default)
+ same => n,Hangup()
+
+; Echo test
+exten => *43,1,NoOp(Echo test)
+ same => n,Answer()
+ same => n,Echo()
+ same => n,Hangup()
+
+; Speaking clock
+exten => *60,1,NoOp(Speaking clock)
+ same => n,Answer()
+ same => n,SayUnixTime()
+ same => n,Hangup()
+
+; Outbound calls via managed routes
+include => outbound
+
+; Invalid destinations
+exten => i,1,Playback(invalid)
+ same => n,Hangup()
+
+; --- WebUI managed includes ---
+#include "/etc/asterisk/webui/extensions_inbound.conf"
+#include "/etc/asterisk/webui/extensions_timegroups.conf"
+#include "/etc/asterisk/webui/extensions_ringgroups.conf"
+#include "/etc/asterisk/webui/extensions_conferences.conf"
+#include "/etc/asterisk/webui/extensions_ivr.conf"
+#include "/etc/asterisk/webui/extensions_outbound.conf"

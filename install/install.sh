@@ -340,6 +340,24 @@ migrate_includes() {
     touch /etc/asterisk/webui/extensions_outbound.conf
     touch /etc/asterisk/webui/confbridge_profiles.conf
 
+    chown -R asterisk:asterisk /etc/asterisk/webui
+
+    # Deploy managed extensions.conf template (replaces stock sample)
+    local ext_template="$WEBUI_DIR/install/extensions.conf.template"
+    if [[ -f "$ext_template" ]]; then
+        local ext_conf="/etc/asterisk/extensions.conf"
+        # Snapshot original before replacing
+        local backup_dir="/opt/asterisk-webui/config-snapshots/pre-migration-$(date +%Y%m%d-%H%M%S)"
+        mkdir -p "$backup_dir"
+        cp -a "$ext_conf" "$backup_dir/"
+        info "Backed up $ext_conf -> $backup_dir/"
+        cp "$ext_template" "$ext_conf"
+        chown asterisk:asterisk "$ext_conf"
+        info "Deployed managed extensions.conf from template"
+    else
+        warn "extensions.conf.template not found — falling back to migrate-includes.sh"
+    fi
+
     if [[ -f "$WEBUI_DIR/scripts/migrate-includes.sh" ]]; then
         bash "$WEBUI_DIR/scripts/migrate-includes.sh"
         info "Asterisk config migration complete"

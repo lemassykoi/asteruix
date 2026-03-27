@@ -118,6 +118,8 @@ def generate_voicemail_boxes() -> str:
         "; ---- WebUI-managed voicemail boxes ----",
         "; Auto-generated — do not edit manually",
         "",
+        "[default]",
+        "",
     ]
 
     for r in rows:
