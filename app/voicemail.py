@@ -218,6 +218,17 @@ def api_update_blast():
                 return jsonify({"error": f"Invalid mailbox in list: {mb}"}), 400
         mailbox_list = "&".join(m.split("@")[0] for m in mailboxes)
 
+    # Validate that referenced mailboxes exist
+    if mailbox_list:
+        db = get_db()
+        final_mailboxes = [m.strip() for m in mailbox_list.split("&") if m.strip()]
+        existing_boxes = {r["mailbox"] for r in db.execute(
+            "SELECT mailbox FROM voicemail_boxes"
+        ).fetchall()}
+        missing = [m for m in final_mailboxes if m not in existing_boxes]
+        if missing:
+            return jsonify({"error": f"Mailbox(es) not found in voicemail boxes: {', '.join(missing)}"}), 400
+
     # Validate flags
     valid_flags = set("bsuj")
     for c in voicemail_flags:
@@ -379,6 +390,15 @@ def ui_blast():
                     flash(e, "danger")
                 return redirect(url_for("voicemail.ui_blast"))
             mailbox_list = "&".join(mailboxes)
+
+            # Validate that referenced mailboxes exist
+            existing_boxes = {r["mailbox"] for r in db.execute(
+                "SELECT mailbox FROM voicemail_boxes"
+            ).fetchall()}
+            missing = [m for m in mailboxes if m not in existing_boxes]
+            if missing:
+                flash(f"Mailbox(es) not found in voicemail boxes: {', '.join(missing)}", "danger")
+                return redirect(url_for("voicemail.ui_blast"))
 
         valid_flags = set("bsuj")
         for c in voicemail_flags:

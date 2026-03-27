@@ -10,7 +10,7 @@ from app.apply import safe_apply
 from app.audit import log_action
 from app.auth import get_current_user, login_required
 from app.db import get_db
-from app.generators import generate_confbridge_profiles, write_confbridge_profiles
+from app.generators import generate_confbridge_profiles, write_confbridge_profiles, write_conference_extensions
 
 conference_bp = Blueprint("conference", __name__)
 
@@ -47,8 +47,8 @@ def _apply_config() -> tuple[bool, str]:
     """Write managed files, reload Asterisk, return (success, message)."""
     return safe_apply(
         label="pre-conference-apply",
-        writers=[write_confbridge_profiles],
-        reload_commands=["module reload app_confbridge.so"],
+        writers=[write_confbridge_profiles, write_conference_extensions],
+        reload_commands=["module reload app_confbridge.so", "dialplan reload"],
     )
 
 

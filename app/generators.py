@@ -554,6 +554,51 @@ def write_confbridge_profiles():
     return content
 
 
+def generate_conference_extensions() -> str:
+    """Render dialplan extensions for conference rooms in the [internal] context.
+
+    Each conference room produces an exact-match extension in [internal] that
+    calls ConfBridge() with the room's bridge, user, and menu profiles.
+    """
+    db = get_db()
+    rows = db.execute("SELECT * FROM conference_rooms ORDER BY extension").fetchall()
+
+    lines = [
+        "; ---- WebUI-managed Conference Room Extensions ----",
+        "; Auto-generated — do not edit manually",
+        "",
+    ]
+
+    if not rows:
+        return "\n".join(lines)
+
+    lines.append("[internal]")
+    lines.append("")
+
+    for r in rows:
+        ext = _scv(r["extension"])
+        bridge_name = _scv(r["bridge_profile"])
+        user_name = _scv(r["user_profile"])
+        menu_name = _scv(r["menu_profile"])
+
+        lines.append(f"; --- Conference Room: {ext} ---")
+        lines.append(f"exten => {ext},1,NoOp(Conference room {ext})")
+        lines.append(f" same => n,Answer()")
+        lines.append(f" same => n,Set(CHANNEL(language)=fr)")
+        lines.append(f" same => n,ConfBridge({ext},{bridge_name},{user_name},{menu_name})")
+        lines.append(f" same => n,Hangup()")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+def write_conference_extensions():
+    """Generate and atomically write the managed conference extensions dialplan file."""
+    content = generate_conference_extensions()
+    _atomic_write(os.path.join(WEBUI_CONF_DIR, "extensions_conferences.conf"), content)
+    return content
+
+
 def generate_ring_groups() -> str:
     """Render ring group dialplan entries in the [internal] context.
 
