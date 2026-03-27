@@ -62,6 +62,19 @@ def _get_moh_classes():
     return db.execute("SELECT name FROM moh_classes ORDER BY name").fetchall()
 
 
+def _get_menu_profiles():
+    """Fetch available ConfBridge menu profile names from Asterisk."""
+    from app.asterisk_cmd import run_command
+    menus = []
+    ok, output = run_command("confbridge show menus")
+    if ok and output:
+        for line in output.splitlines():
+            name = line.strip()
+            if name and name != "--------- Menus -----------":
+                menus.append(name)
+    return sorted(menus) if menus else ["default_menu", "sample_user_menu", "sample_admin_menu"]
+
+
 # ---------------------------------------------------------------------------
 # JSON API endpoints — /api/v1/conference/rooms
 # ---------------------------------------------------------------------------
@@ -106,11 +119,12 @@ def api_update(extension):
 
     db.execute(
         "UPDATE conference_rooms SET max_members=?, moh_class=?, "
-        "announce_join_leave=?, music_on_hold_when_empty=? "
+        "menu_profile=?, announce_join_leave=?, music_on_hold_when_empty=? "
         "WHERE extension=?",
         (
             int(data.get("max_members", existing["max_members"])),
             data.get("moh_class", existing["moh_class"]).strip(),
+            data.get("menu_profile", existing["menu_profile"]).strip(),
             1 if data.get("announce_join_leave") else 0,
             1 if data.get("music_on_hold_when_empty") else 0,
             extension,
@@ -158,6 +172,7 @@ def ui_edit(extension):
             "extension": extension,
             "max_members": request.form.get("max_members", "10").strip(),
             "moh_class": request.form.get("moh_class", "default").strip(),
+            "menu_profile": request.form.get("menu_profile", "sample_user_menu").strip(),
             "announce_join_leave": 1 if request.form.get("announce_join_leave") else 0,
             "music_on_hold_when_empty": 1 if request.form.get("music_on_hold_when_empty") else 0,
         }
@@ -167,17 +182,19 @@ def ui_edit(extension):
             for e in errors:
                 flash(e, "danger")
             moh_classes = _get_moh_classes()
+            menu_profiles = _get_menu_profiles()
             return render_template("conference_form.html", room=data,
-                                   moh_classes=moh_classes)
+                                   moh_classes=moh_classes, menu_profiles=menu_profiles)
 
         before = _room_to_dict(existing)
         db.execute(
             "UPDATE conference_rooms SET max_members=?, moh_class=?, "
-            "announce_join_leave=?, music_on_hold_when_empty=? "
+            "menu_profile=?, announce_join_leave=?, music_on_hold_when_empty=? "
             "WHERE extension=?",
             (
                 int(data["max_members"]),
                 data["moh_class"],
+                data["menu_profile"],
                 data["announce_join_leave"],
                 data["music_on_hold_when_empty"],
                 extension,
@@ -195,5 +212,6 @@ def ui_edit(extension):
 
     room = _room_to_dict(existing)
     moh_classes = _get_moh_classes()
+    menu_profiles = _get_menu_profiles()
     return render_template("conference_form.html", room=room,
-                           moh_classes=moh_classes)
+                           moh_classes=moh_classes, menu_profiles=menu_profiles)

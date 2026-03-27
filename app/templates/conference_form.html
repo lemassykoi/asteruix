@@ -45,12 +45,22 @@
     </div>
   </div>
 
+  <div class="form-row">
+    <div class="form-group">
+      <label for="menu_profile">Menu Profile</label>
+      <select id="menu_profile" name="menu_profile" class="form-control">
+        {% for m in menu_profiles %}
+        <option value="{{ m }}" {{ "selected" if room.menu_profile == m }}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
   <div class="form-group" style="margin-top:1rem">
     <label>Profiles (read-only)</label>
     <p class="text-muted" style="margin:0">
       Bridge: <code>{{ room.bridge_profile }}</code> &nbsp;|&nbsp;
-      User: <code>{{ room.user_profile }}</code> &nbsp;|&nbsp;
-      Menu: <code>{{ room.menu_profile }}</code>
+      User: <code>{{ room.user_profile }}</code>
     </p>
   </div>
 

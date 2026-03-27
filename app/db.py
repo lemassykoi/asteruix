@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS conference_rooms (
     extension               TEXT PRIMARY KEY,
     bridge_profile          TEXT NOT NULL DEFAULT 'default_bridge',
     user_profile            TEXT NOT NULL DEFAULT 'default_user',
-    menu_profile            TEXT NOT NULL DEFAULT 'default_menu',
+    menu_profile            TEXT NOT NULL DEFAULT 'sample_user_menu',
     max_members             INTEGER NOT NULL DEFAULT 10,
     moh_class               TEXT NOT NULL DEFAULT 'default',
     announce_join_leave     INTEGER NOT NULL DEFAULT 1,

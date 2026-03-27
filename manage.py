@@ -422,7 +422,7 @@ def import_conference(args):
             "(extension, bridge_profile, user_profile, menu_profile, "
             "max_members, moh_class, announce_join_leave, music_on_hold_when_empty) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (ext, "default_bridge", "default_user", "default_menu",
+            (ext, "default_bridge", "default_user", "sample_user_menu",
              10, "default", 1, 1),
         )
         db.commit()
