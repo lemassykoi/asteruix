@@ -196,6 +196,9 @@ install_asterisk() {
         die "Asterisk installation failed"
     fi
 
+    # Configure asterisk.ctl for CLI access (required by AsterUIX)
+    configure_asterisk_ctl
+
     # Verify Asterisk is running
     if systemctl is-active --quiet asterisk; then
         local version
@@ -203,6 +206,28 @@ install_asterisk() {
         info "Asterisk version: $version"
     else
         warn "Asterisk is not running - check logs"
+    fi
+}
+
+configure_asterisk_ctl() {
+    info "Configuring asterisk.ctl for CLI access..."
+
+    local asterisk_conf="/etc/asterisk/asterisk.conf"
+
+    if [[ -f "$asterisk_conf" ]]; then
+        # Uncomment [files] section
+        sed -i 's/^;\[files\]/[files]/' "$asterisk_conf"
+        # Uncomment astctl settings
+        sed -i 's/^;astctlpermissions/astctlpermissions/' "$asterisk_conf"
+        sed -i 's/^;astctlowner/astctlowner/' "$asterisk_conf"
+        sed -i 's/^;astctlgroup/astctlgroup/' "$asterisk_conf"
+        sed -i 's/^;astctl/astctl/' "$asterisk_conf"
+        # Set correct group (asterisk instead of apache)
+        sed -i 's/^astctlgroup = apache/astctlgroup = asterisk/' "$asterisk_conf"
+
+        info "asterisk.ctl configured"
+    else
+        warn "asterisk.conf not found - skipping asterisk.ctl configuration"
     fi
 }
 
