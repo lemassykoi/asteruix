@@ -334,6 +334,10 @@ migrate_includes() {
     touch /etc/asterisk/webui/musiconhold_classes.conf
     touch /etc/asterisk/webui/extensions_inbound.conf
     touch /etc/asterisk/webui/extensions_timegroups.conf
+    touch /etc/asterisk/webui/extensions_ringgroups.conf
+    touch /etc/asterisk/webui/extensions_conferences.conf
+    touch /etc/asterisk/webui/extensions_ivr.conf
+    touch /etc/asterisk/webui/extensions_outbound.conf
     touch /etc/asterisk/webui/confbridge_profiles.conf
 
     if [[ -f "$WEBUI_DIR/scripts/migrate-includes.sh" ]]; then

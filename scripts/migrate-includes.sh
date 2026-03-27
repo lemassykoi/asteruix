@@ -45,9 +45,13 @@ add_include "/etc/asterisk/voicemail.conf" "#include \"$WEBUI_DIR/voicemail_boxe
 # musiconhold.conf — managed classes
 add_include "/etc/asterisk/musiconhold.conf" "#include \"$WEBUI_DIR/musiconhold_classes.conf\""
 
-# extensions.conf — inbound flow + time groups
+# extensions.conf — inbound flow, time groups, ring groups, conferences, IVR, outbound
 add_include "/etc/asterisk/extensions.conf" "#include \"$WEBUI_DIR/extensions_inbound.conf\""
 add_include "/etc/asterisk/extensions.conf" "#include \"$WEBUI_DIR/extensions_timegroups.conf\""
+add_include "/etc/asterisk/extensions.conf" "#include \"$WEBUI_DIR/extensions_ringgroups.conf\""
+add_include "/etc/asterisk/extensions.conf" "#include \"$WEBUI_DIR/extensions_conferences.conf\""
+add_include "/etc/asterisk/extensions.conf" "#include \"$WEBUI_DIR/extensions_ivr.conf\""
+add_include "/etc/asterisk/extensions.conf" "#include \"$WEBUI_DIR/extensions_outbound.conf\""
 
 # confbridge.conf — managed profiles
 add_include "/etc/asterisk/confbridge.conf" "#include \"$WEBUI_DIR/confbridge_profiles.conf\""
