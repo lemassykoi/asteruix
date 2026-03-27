@@ -60,8 +60,8 @@ make -j$(nproc)
 
 echo "===== 6. Installing ====="
 make install
-make samples
-make config
+#make samples
+#make config
 ldconfig
 
 echo "===== 6.1 Setting ownership ====="
