@@ -75,6 +75,7 @@ sudo chown -R asterisk /usr/lib/asterisk
 echo "===== 6.2 Configure Asterisk to run as asterisk user ====="
 sed -i 's/^;runuser/runuser/' /etc/asterisk/asterisk.conf
 sed -i 's/^;rungroup/rungroup/' /etc/asterisk/asterisk.conf
+echo "defaultlanguage = fr" >> /etc/asterisk/asterisk.conf
 
 echo "===== 6.3 Setting French tones ====="
 sed -i 's/^country=.*/country=fr/' /etc/asterisk/indications.conf
