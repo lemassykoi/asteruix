@@ -71,19 +71,28 @@ sudo chown -R asterisk /etc/asterisk
 sudo chown -R asterisk /var/{lib,log,spool}/asterisk
 sudo chown -R asterisk /usr/lib/asterisk
 
-echo "===== 6.2 Configure Asterisk to run as asterisk user ====="
+echo "===== 6.2 Configure Asterisk ====="
+
+echo "===== 6.2.1 Configure Asterisk to run as asterisk user ====="
 sed -i 's/^;runuser/runuser/' /etc/asterisk/asterisk.conf
 sed -i 's/^;rungroup/rungroup/' /etc/asterisk/asterisk.conf
-echo "defaultlanguage = fr" >> /etc/asterisk/asterisk.conf
+
+echo "===== 6.2.2 Configure Asterisk language (fr) ====="
+sed -i 's/^;defaultlanguage = en/defaultlanguage = fr/' /etc/asterisk/asterisk.conf
+sed -i 's/^documentation_language = en_US/documentation_language = fr_FR/' /etc/asterisk/asterisk.conf
+
+echo "===== 6.2.3 Configure Asterisk to hide console connection/disconnection messages ====="
+sed -i 's/^;hideconnect/hideconnect/' /etc/asterisk/asterisk.conf
 
 echo "===== 6.3 Setting French tones ====="
-file_path = "/etc/asterisk/indications.conf"
 sed -i 's/^country = .*/country = fr/' /etc/asterisk/indications.conf
+
 
 echo "===== 7. Starting Asterisk ====="
 systemctl daemon-reexec
 systemctl start asterisk
 systemctl enable asterisk
+
 
 echo "===== Done ====="
 echo "Connect with: sudo asterisk -rvv"
