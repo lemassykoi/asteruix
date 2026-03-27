@@ -60,9 +60,9 @@ make -j$(nproc)
 
 echo "===== 6. Installing ====="
 make install
-#make samples
-make basic-pbx
-#make config
+#make samples  # all .conf.sample files
+#make basic-pbx # some basic .conf files
+make config
 ldconfig
 
 echo "===== 6.1 Setting ownership ====="
