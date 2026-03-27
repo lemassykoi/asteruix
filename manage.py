@@ -119,11 +119,10 @@ def import_extensions(args):
 
         db.commit()
         print(f"\n{count} extension(s) imported.")
-        if args.generate:
-            from app.generators import write_pjsip_extensions, write_voicemail_boxes
-            write_pjsip_extensions()
-            write_voicemail_boxes()
-            print("Managed config files generated.")
+        from app.generators import write_pjsip_extensions, write_voicemail_boxes
+        write_pjsip_extensions()
+        write_voicemail_boxes()
+        print("Managed config files generated.")
 
 
 def import_moh(args):
@@ -194,10 +193,9 @@ def import_moh(args):
         db.commit()
         print(f"\n{count} MoH class(es) imported.")
 
-        if args.generate:
-            from app.generators import write_musiconhold_classes
-            write_musiconhold_classes()
-            print("Managed MoH config file generated.")
+        from app.generators import write_musiconhold_classes
+        write_musiconhold_classes()
+        print("Managed MoH config file generated.")
 
 
 def import_announcements(args):
@@ -340,10 +338,9 @@ def import_timegroups(args):
         for r in rules:
             print(f"  {r['start']}-{r['end']} {','.join(r['days'])}")
 
-        if args.generate:
-            from app.generators import write_timegroups
-            write_timegroups()
-            print("Managed config file generated.")
+        from app.generators import write_timegroups
+        write_timegroups()
+        print("Managed config file generated.")
 
 
 def import_inbound(args):
@@ -404,11 +401,9 @@ def import_inbound(args):
         db.commit()
         print(f"\nInbound route '{name}' created.")
 
-        if args.generate:
-            from app.generators import write_inbound_flow
-            content = write_inbound_flow()
-            print("Managed config file generated.")
-            print(f"\nGenerated dialplan:\n{content}")
+        from app.generators import write_inbound_flow
+        content = write_inbound_flow()
+        print("Managed config file generated.")
 
 
 def import_conference(args):
@@ -433,10 +428,10 @@ def import_conference(args):
         db.commit()
         print(f"Conference room {ext} imported.")
 
-        if args.generate:
-            from app.generators import write_confbridge_profiles
-            write_confbridge_profiles()
-            print("Managed ConfBridge config file generated.")
+        from app.generators import write_confbridge_profiles, write_conference_extensions
+        write_confbridge_profiles()
+        write_conference_extensions()
+        print("Managed ConfBridge config and dialplan files generated.")
 
 
 def populate_spam_db(args):
