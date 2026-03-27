@@ -78,7 +78,30 @@ sed -i 's/^;rungroup/rungroup/' /etc/asterisk/asterisk.conf
 echo "defaultlanguage = fr" >> /etc/asterisk/asterisk.conf
 
 echo "===== 6.3 Setting French tones ====="
-sed -i 's/^country=.*/country=fr/' /etc/asterisk/indications.conf
+file_path = "/etc/asterisk/indications.conf"
+sed -i 's/^country = .*/country = fr/' /etc/asterisk/indications.conf
+text_to_add = """
+[fr]
+description = France
+; Reference: http://www.itu.int/ITU-T/inr/forms/files/tones-0203.pdf
+ringcadence = 1500,3500
+; Dialtone can also be 440+330
+dial = 440
+busy = 440/500,0/500
+ring = 440/1500,0/3500
+; CONGESTION - not specified
+congestion = 440/250,0/250
+callwait = 440/300,0/10000
+; DIALRECALL - not specified
+dialrecall = !350+440/100,!0/100,!350+440/100,!0/100,!350+440/100,!0/100,350+440
+; RECORDTONE - not specified
+record = 1400/500,0/15000
+info = !950/330,!1400/330,!1800/330
+stutter = !440/100,!0/100,!440/100,!0/100,!440/100,!0/100,!440/100,!0/100,!440/100,!0/100,!440/100,!0/100,440
+"""
+# Append the text to the file
+with open(file_path, "a") as file:
+    file.write("\n" + text_to_add)
 
 echo "===== 7. Starting Asterisk ====="
 systemctl daemon-reexec
