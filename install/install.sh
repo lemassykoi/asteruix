@@ -232,6 +232,64 @@ configure_asterisk_ctl() {
 }
 
 # =============================================================================
+# Install G.722 Sound Files
+# =============================================================================
+
+install_g722_sounds() {
+    info "Installing G.722 sound files..."
+
+    local g722_source="$SCRIPT_DIR/../g722"
+    local g722_dest="/var/lib/asterisk/sounds/fr"
+
+    if [[ ! -d "$g722_source" ]]; then
+        warn "G.722 source directory not found: $g722_source"
+        return
+    fi
+
+    # Create destination directory if it doesn't exist
+    if [[ ! -d "$g722_dest" ]]; then
+        mkdir -p "$g722_dest"
+        info "Created destination directory: $g722_dest"
+    fi
+
+    # Copy all g722 files
+    local count=0
+    for file in "$g722_source"/*.g722; do
+        if [[ -f "$file" ]]; then
+            cp "$file" "$g722_dest/"
+            ((count++))
+        fi
+    done
+
+    # Also copy digits subdirectory if it exists
+    if [[ -d "$g722_source/digits" ]]; then
+        mkdir -p "$g722_dest/digits"
+        for file in "$g722_source/digits"/*.g722; do
+            if [[ -f "$file" ]]; then
+                cp "$file" "$g722_dest/digits/"
+                ((count++))
+            fi
+        done
+    fi
+
+    # Also copy dictate subdirectory if it exists
+    if [[ -d "$g722_source/dictate" ]]; then
+        mkdir -p "$g722_dest/dictate"
+        for file in "$g722_source/dictate"/*.g722; do
+            if [[ -f "$file" ]]; then
+                cp "$file" "$g722_dest/dictate/"
+                ((count++))
+            fi
+        done
+    fi
+
+    # Set correct ownership
+    chown -R asterisk:asterisk "$g722_dest"
+
+    info "Installed $count G.722 sound files to $g722_dest"
+}
+
+# =============================================================================
 # Phase 2 - Install WebUI Dependencies
 # =============================================================================
 
@@ -726,6 +784,7 @@ main() {
 
     # Phase 1: Install Asterisk 22
     install_asterisk
+    install_g722_sounds
     echo ""
 
     # Phase 2: Install WebUI dependencies
