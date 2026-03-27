@@ -670,7 +670,7 @@ def main():
     p_cext.add_argument("--extension", required=True, help="Extension number")
     p_cext.add_argument("--name", help="Caller ID name")
     p_cext.add_argument("--secret", help="SIP password (defaults to extension number)")
-    p_cext.add_argument("--context", default="from-internal", help="Dialplan context")
+    p_cext.add_argument("--context", default="internal", help="Dialplan context")
     p_cext.set_defaults(func=create_extension)
 
     p_cinb = sub.add_parser("create-inbound", help="Create an inbound route")

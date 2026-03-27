@@ -399,7 +399,7 @@ create_default_config() {
         --extension "4900" \
         --name "Default User" \
         --secret "4900" \
-        --context "from-internal" 2>/dev/null || \
+        --context "internal" 2>/dev/null || \
     info "Extension 4900 created or already exists"
 
     info "Creating default inbound route..."
