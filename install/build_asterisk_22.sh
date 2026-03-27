@@ -60,9 +60,10 @@ make -j$(nproc)
 
 echo "===== 6. Installing ====="
 make install
+make config  # auto start at boot
 #make samples  # all .conf.sample files
-#make basic-pbx # some basic .conf files
-make config
+make basic-pbx # some basic .conf files
+
 ldconfig
 
 echo "===== 6.1 Setting ownership ====="
