@@ -254,21 +254,18 @@ install_g722_sounds() {
 
     # Copy all g722 files
     local count=0
+    shopt -s nullglob
     for file in "$g722_source"/*.g722; do
-        if [[ -f "$file" ]]; then
-            cp "$file" "$g722_dest/"
-            ((count++))
-        fi
+        cp "$file" "$g722_dest/"
+        count=$((count + 1))
     done
 
     # Also copy digits subdirectory if it exists
     if [[ -d "$g722_source/digits" ]]; then
         mkdir -p "$g722_dest/digits"
         for file in "$g722_source/digits"/*.g722; do
-            if [[ -f "$file" ]]; then
-                cp "$file" "$g722_dest/digits/"
-                ((count++))
-            fi
+            cp "$file" "$g722_dest/digits/"
+            count=$((count + 1))
         done
     fi
 
@@ -276,12 +273,38 @@ install_g722_sounds() {
     if [[ -d "$g722_source/dictate" ]]; then
         mkdir -p "$g722_dest/dictate"
         for file in "$g722_source/dictate"/*.g722; do
-            if [[ -f "$file" ]]; then
-                cp "$file" "$g722_dest/dictate/"
-                ((count++))
-            fi
+            cp "$file" "$g722_dest/dictate/"
+            count=$((count + 1))
         done
     fi
+
+    # Also copy followme subdirectory if it exists
+    if [[ -d "$g722_source/followme" ]]; then
+        mkdir -p "$g722_dest/followme"
+        for file in "$g722_source/followme"/*.g722; do
+            cp "$file" "$g722_dest/followme/"
+            count=$((count + 1))
+        done
+    fi
+
+    # Also copy letters subdirectory if it exists
+    if [[ -d "$g722_source/letters" ]]; then
+        mkdir -p "$g722_dest/letters"
+        for file in "$g722_source/letters"/*.g722; do
+            cp "$file" "$g722_dest/letters/"
+            count=$((count + 1))
+        done
+    fi
+
+    # Also copy phonetic subdirectory if it exists
+    if [[ -d "$g722_source/phonetic" ]]; then
+        mkdir -p "$g722_dest/phonetic"
+        for file in "$g722_source/phonetic"/*.g722; do
+            cp "$file" "$g722_dest/phonetic/"
+            count=$((count + 1))
+        done
+    fi
+    shopt -u nullglob
 
     # Set correct ownership
     chown -R asterisk:asterisk "$g722_dest"
