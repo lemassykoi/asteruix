@@ -54,6 +54,42 @@ A lightweight web interface for managing an Asterisk 22 LTS PBX, built with Flas
 
 ## Installation
 
+### Automated (recommended)
+
+The install script handles everything on a fresh Debian 12/13 system: compiles Asterisk 22 LTS, sets up AsterUIX, creates a default extension (4900), and optionally restores from backup.
+
+```bash
+git clone https://github.com/lemassykoi/asteruix.git /opt/asterisk-webui
+cd /opt/asterisk-webui
+sudo ./install/install.sh
+```
+
+**Restore from backup during install:**
+```bash
+# Option 1: explicit flag
+sudo ./install/install.sh --restore /path/to/asterisk-backup-YYYYMMDD-HHMMSS.tar.gz
+
+# Option 2: auto-detect — just place the backup file in the repo folder
+cp /path/to/asterisk-backup-*.tar.gz /opt/asterisk-webui/
+sudo ./install/install.sh
+```
+
+Use `-y` to skip confirmation prompts (e.g. `./install/install.sh -y`).
+
+### Backup & Restore
+
+```bash
+# Create a backup (config + DB + voicemail)
+asterisk-backup.sh
+
+# Restore from a backup
+asterisk-restore.sh /var/backups/asterisk/asterisk-backup-YYYYMMDD-HHMMSS.tar.gz
+```
+
+Backups are stored in `/var/backups/asterisk/` (last 10 kept). The backup includes the WebUI database, so all settings (trunks, ring groups, IVR menus, outbound routes, conference rooms, UI users) are preserved. On restore, all 11 managed config files are regenerated from the database.
+
+### Manual
+
 ```bash
 # Clone
 git clone https://github.com/lemassykoi/asteruix.git /opt/asterisk-webui
