@@ -22,7 +22,7 @@ A lightweight web interface for managing an Asterisk 22 LTS PBX, built with Flas
 - **Inbound Routes** — Visual 5-step call flow editor (spam → holidays → time → open/closed routing)
 - **Conference Rooms** — ConfBridge room settings (max members, MoH class, announce join/leave)
 - **Dialplan Visualization** — Read-only CSS flowchart of the inbound call path with live config values
-- **Backup/Restore** — Create and restore full Asterisk config backups from the UI
+- **Backup/Restore** — Full system backup including WebUI database, config files, and voicemail; auto-detect backup files during install for one-shot rebuild
 
 ## Architecture
 
@@ -114,6 +114,8 @@ app/
 manage.py                # CLI management commands
 wsgi.py                  # WSGI entry point
 scripts/
+├── asterisk-backup.sh   # Full backup (config + DB + voicemail)
+├── asterisk-restore.sh  # Restore with config regeneration from DB
 ├── migrate-includes.sh  # Add #include directives to Asterisk configs
 └── rollback-includes.sh # Remove #include directives
 tests/

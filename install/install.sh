@@ -594,9 +594,35 @@ install_backup_scripts() {
     fi
 }
 
+detect_backup_file() {
+    # Auto-detect a backup .tar.gz placed in the repo directory or install/ subfolder.
+    # Only considers files NOT tracked by git (user-placed files).
+    if [[ -n "$RESTORE_FILE" ]]; then
+        return  # Already specified via --restore
+    fi
+
+    local search_dirs=("$WEBUI_DIR" "$WEBUI_DIR/install" "$SCRIPT_DIR")
+    for dir in "${search_dirs[@]}"; do
+        if [[ ! -d "$dir" ]]; then
+            continue
+        fi
+        for f in "$dir"/asterisk-backup-*.tar.gz; do
+            if [[ -f "$f" ]]; then
+                # Verify it's not tracked by git
+                if cd "$WEBUI_DIR" && git ls-files --error-unmatch "$f" >/dev/null 2>&1; then
+                    continue  # Tracked by git, skip
+                fi
+                RESTORE_FILE="$f"
+                info "Auto-detected backup file: $RESTORE_FILE"
+                return
+            fi
+        done
+    done
+}
+
 restore_backup() {
     if [[ -z "$RESTORE_FILE" ]]; then
-        info "No backup file specified - skipping restore"
+        info "No backup file specified or detected - skipping restore"
         return
     fi
 
@@ -605,6 +631,15 @@ restore_backup() {
 
     if [[ ! -f "$RESTORE_FILE" ]]; then
         die "Backup file not found: $RESTORE_FILE"
+    fi
+
+    # Check if backup contains the WebUI database
+    local has_webui_db=false
+    if tar -tzf "$RESTORE_FILE" 2>/dev/null | grep -q "var/lib/asterisk-webui/webui.db"; then
+        has_webui_db=true
+        info "Backup contains WebUI database"
+    else
+        info "Backup does not contain WebUI database (legacy format)"
     fi
 
     systemctl stop asterisk || true
@@ -618,10 +653,32 @@ restore_backup() {
         /var/spool/asterisk/voicemail \
         /var/lib/asterisk
 
+    if [[ -f /var/lib/asterisk-webui/webui.db ]]; then
+        chown asterisk:asterisk /var/lib/asterisk-webui/webui.db 2>/dev/null || true
+    fi
+
+    # Re-deploy managed extensions.conf template
+    local ext_template="$WEBUI_DIR/install/extensions.conf.template"
+    if [[ -f "$ext_template" ]]; then
+        cp "$ext_template" /etc/asterisk/extensions.conf
+        chown asterisk:asterisk /etc/asterisk/extensions.conf
+        info "Re-deployed managed extensions.conf from template"
+    fi
+
     if [[ -f "$WEBUI_DIR/scripts/migrate-includes.sh" ]]; then
         info "Re-running migrate-includes.sh..."
         bash "$WEBUI_DIR/scripts/migrate-includes.sh"
     fi
+
+    # Ensure webui config dir and placeholders exist
+    mkdir -p /etc/asterisk/webui
+    for conf in pjsip_extensions pjsip_trunks voicemail_boxes musiconhold_classes \
+                extensions_inbound extensions_timegroups extensions_ringgroups \
+                extensions_conferences extensions_ivr extensions_outbound \
+                confbridge_profiles; do
+        touch "/etc/asterisk/webui/${conf}.conf"
+    done
+    chown -R asterisk:asterisk /etc/asterisk/webui
 
     info "Starting Asterisk..."
     systemctl start asterisk
@@ -629,28 +686,68 @@ restore_backup() {
     info "Restarting WebUI..."
     systemctl restart asterisk-webui
 
-    info "Importing configuration into WebUI database..."
     cd "$WEBUI_DIR"
     source "$WEBUI_DIR/venv/bin/activate"
 
-    local import_commands=(
-        "import-extensions"
-        "import-moh"
-        "import-announcements"
-        "import-timegroups"
-        "import-inbound"
-        "import-conference"
-    )
+    if [[ "$has_webui_db" == "true" ]]; then
+        # DB was restored from backup — regenerate all config files from DB state
+        info "Regenerating all config files from WebUI database..."
+        python3 -c "
+from app import create_app
+from app.generators import (
+    write_pjsip_extensions, write_voicemail_boxes, write_pjsip_trunks,
+    write_confbridge_profiles, write_conference_extensions,
+    write_ring_groups, write_ivr_menus, write_inbound_flow,
+    write_timegroups, write_outbound_routes, write_musiconhold_classes,
+)
 
-    for cmd in "${import_commands[@]}"; do
-        if python3 manage.py "$cmd" 2>/dev/null; then
-            info "Imported: $cmd"
-        else
-            warn "Import failed or skipped: $cmd"
-        fi
-    done
+app = create_app()
+with app.app_context():
+    generators = [
+        ('pjsip_extensions.conf', write_pjsip_extensions),
+        ('voicemail_boxes.conf', write_voicemail_boxes),
+        ('pjsip_trunks.conf', write_pjsip_trunks),
+        ('confbridge_profiles.conf', write_confbridge_profiles),
+        ('extensions_conferences.conf', write_conference_extensions),
+        ('extensions_ringgroups.conf', write_ring_groups),
+        ('extensions_ivr.conf', write_ivr_menus),
+        ('extensions_inbound.conf', write_inbound_flow),
+        ('extensions_timegroups.conf', write_timegroups),
+        ('extensions_outbound.conf', write_outbound_routes),
+        ('musiconhold_classes.conf', write_musiconhold_classes),
+    ]
+    for name, writer in generators:
+        try:
+            writer()
+            print(f'  Generated: {name}')
+        except Exception as e:
+            print(f'  WARN: {name} failed: {e}')
+" 2>&1 | while read -r line; do info "$line"; done
+    else
+        # Legacy backup without WebUI DB — import from config files
+        info "Importing configuration from restored config files..."
+        local import_commands=(
+            "import-extensions"
+            "import-moh"
+            "import-announcements"
+            "import-timegroups"
+            "import-inbound"
+            "import-conference"
+        )
+
+        for cmd in "${import_commands[@]}"; do
+            if python3 manage.py "$cmd" 2>/dev/null; then
+                info "Imported: $cmd"
+            else
+                warn "Import failed or skipped: $cmd"
+            fi
+        done
+    fi
 
     deactivate
+
+    # Reload Asterisk to pick up regenerated configs
+    asterisk -rx "core reload" 2>/dev/null || true
 
     info "Backup restore completed successfully"
 }
@@ -829,6 +926,7 @@ main() {
     # Phase 4: Backup scripts & optional restore
     info "=== Phase 4: Backup/Restore ==="
     install_backup_scripts
+    detect_backup_file
     restore_backup
     echo ""
 

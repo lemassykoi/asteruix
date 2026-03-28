@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Asterisk Backup Script
-# Creates a backup of Asterisk configuration and data
+# Creates a backup of Asterisk configuration, data, and WebUI database
 #
 
 set -euo pipefail
@@ -10,11 +10,12 @@ readonly BACKUP_DIR="/var/backups/asterisk"
 readonly TIMESTAMP=$(date '+%Y%m%d-%H%M%S')
 readonly BACKUP_FILE="asterisk-backup-${TIMESTAMP}.tar.gz"
 
-# Directories to backup
+# Directories and files to backup
 readonly BACKUP_PATHS=(
     "/etc/asterisk"
     "/var/spool/asterisk/voicemail"
     "/var/lib/asterisk/astdb.sqlite3"
+    "/var/lib/asterisk-webui/webui.db"
 )
 
 echo "=== Asterisk Backup ==="
@@ -46,6 +47,10 @@ if [[ -f "${BACKUP_DIR}/${BACKUP_FILE}" ]]; then
     echo ""
     echo "Backup completed successfully!"
     echo "File: ${BACKUP_DIR}/${BACKUP_FILE} ($backup_size)"
+    echo ""
+    echo "Contents:"
+    tar -tzf "${BACKUP_DIR}/${BACKUP_FILE}" | head -20
+    echo "..."
 else
     echo "ERROR: Backup failed!"
     exit 1

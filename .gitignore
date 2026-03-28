@@ -11,3 +11,6 @@ config-snapshots/
 PROJECT.md
 WEBUI-PLAN.md
 PATCHING-PLAN.md
+
+# Backup files (user-placed for auto-restore during install)
+asterisk-backup-*.tar.gz
