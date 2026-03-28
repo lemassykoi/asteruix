@@ -2,7 +2,7 @@
 
 A lightweight web interface for managing an Asterisk 22 LTS PBX, built with Flask. No FreePBX/VitalPBX — pure Asterisk with a minimal, purpose-built management layer.
 
-> 🇫🇷 **Built for French telephony** — default language set to `fr`, French G.722 sound files included, Europe/Paris timezone, French indications (dial tones, busy tones, ringing), and spam prefix database pre-loaded with known French spam ranges.
+> 🇫🇷 **Note:** The included Asterisk build script (`install/build_asterisk_22.sh`) is configured for French telephony — French G.722 sound files, `fr` default language, Europe/Paris timezone, French indications (dial tones, busy tones, ringing), and spam prefix database pre-loaded with known French spam ranges. AsterUIX itself is language-agnostic.
 
 ## Screenshots
 
